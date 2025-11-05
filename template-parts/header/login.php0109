@@ -1,0 +1,76 @@
+<?php if (!is_user_logged_in()): ?>
+<span class="show-login-popup">
+
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="19" viewBox="0 0 18 19" fill="none">
+    <circle cx="9.5" cy="4.5" r="3.5" stroke="#0A3B64" stroke-width="2" />
+    <path d="M17 18C17 14.134 13.4183 11 9 11C4.58172 11 1 14.134 1 18" stroke="#0A3B64" stroke-width="2"
+      stroke-linecap="round" />
+  </svg>
+</span>
+<div class="login-header-hover">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="17" viewBox="0 0 24 17" fill="none">
+      <path
+        d="M10.4152 1.05873C11.2158 0.0187154 12.7842 0.0187153 13.5848 1.05873L23.3777 13.78C24.3901 15.0951 23.4525 17 21.7928 17H2.20715C0.547474 17 -0.390052 15.0951 0.622342 13.78L10.4152 1.05873Z"
+        fill="#DAECFC" />
+    </svg>
+    <span class="header-hover">התחברות</span>
+  </div>
+<?php else: ?>
+<a id="show_profile_menu_popup" href="javascript:void(0)">
+
+  <!-- Заменить на залитую картинку -->
+  <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 36 36" fill="none">
+    <circle cx="17.4666" cy="9.60332" r="5.1707" fill="#0A3B64" stroke="#0A3B64" stroke-width="2.95469" />
+    <path
+      d="M18 19C11.6832 19 6.5064 24.2875 6.03499 30.9998C5.99629 31.5508 6.44772 32 7 32H29C29.5523 32 30.0037 31.5508 29.965 30.9998C29.4936 24.2875 24.3168 19 18 19Z"
+      fill="#0A3B64" stroke="#0A3B64" stroke-width="2.95469" stroke-linecap="round" />
+  </svg>
+
+  <?php
+      $current_user = wp_get_current_user();
+    ?>
+  <div class="login-header-hover">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="17" viewBox="0 0 24 17" fill="none">
+      <path
+        d="M10.4152 1.05873C11.2158 0.0187154 12.7842 0.0187153 13.5848 1.05873L23.3777 13.78C24.3901 15.0951 23.4525 17 21.7928 17H2.20715C0.547474 17 -0.390052 15.0951 0.622342 13.78L10.4152 1.05873Z"
+        fill="#DAECFC" />
+    </svg>
+    <span class="header-hover"><?= __('היי ', 'geffen') . esc_html( $current_user->first_name  ) ?></span>
+  </div>
+
+
+</a>
+<?php endif ?>
+
+<?php if (is_user_logged_in()): ?>
+<section id="profile_menu_popup">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="17" viewBox="0 0 24 17" fill="none">
+      <path d="M10.4152 1.05873C11.2158 0.0187154 12.7842 0.0187153 13.5848 1.05873L23.3777 13.78C24.3901 15.0951 23.4525 17 21.7928 17H2.20715C0.547474 17 -0.390052 15.0951 0.622342 13.78L10.4152 1.05873Z" fill="#DAECFC"></path>
+    </svg>
+  <nav class="profile-nav">
+    <a id="show_logout_popup"
+      href="javascript:void(0)"><span><strong><?= __('היי ', 'geffen') . esc_html( $current_user->first_name  ) ?></strong></span><br><span style="text-decoration: underline!important;"> <?= __('התנתקות ', 'geffen') ?></span></a>
+  </nav>
+</section>
+
+<section id="confirm_logout_popup">
+  <div class="confirm-logout">
+    <span class="confirm-logout-image" class="confirm-logout-close" id="close_confirm_logout">×</span>
+
+    <img src="<?= assets('img/logo.png') ?>" alt="logo">
+
+    <div class="confirm-logout-wrap">
+      <h2 class="confirm-logout-title"><?= __('האם את/ה בטוח/ה שהינכך רוצה להתנתק?', 'geffen') ?></h2>
+
+      <div class="confirm-logout-btns">
+        <a id="cancel_confirm_logout" class="white-btn" href="javascript:void(0)">
+          <?= __('ביטול', 'geffen') ?>
+        </a>
+        <a id="ok_confirm_logout" class="btn-blue" href="<?php echo wp_logout_url(currUrl()); ?>">
+          <?= __('התנתק/י', 'geffen') ?>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+<?php endif ?>

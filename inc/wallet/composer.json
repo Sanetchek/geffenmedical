@@ -1,0 +1,26 @@
+{
+  "authors": [
+    {
+      "name": "Aleksey Galkevych",
+      "email": "evpatij76@gmail.com"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Geffen\\GeffenGWallet\\": "lib/"
+    },
+    "files": [
+      "includes/functions.php",
+      "includes/hooks.php"
+    ]
+  },
+  "require": {
+    "composer/installers": "^1.8",
+    "pkpass/pkpass": "^2.3"
+  },
+  "config": {
+    "allow-plugins": {
+      "composer/installers": true
+    }
+  }
+}

@@ -1,0 +1,89 @@
+/*!
+Theme Name: Geffen Medical
+Author: Oleksandr Gryshko
+Description: Description
+Version: 1.0.0
+Tested up to: 5.4
+Requires PHP: 5.6
+License: GNU General Public License v2 or later
+License URI: LICENSE
+Text Domain: geffen
+Tags: custom-background, custom-logo, custom-menu, featured-images, threaded-comments, translation-ready
+
+This theme, like WordPress, is licensed under the GPL.
+Use it to make something cool, have fun, and share what you've learned.
+
+Geffen is based on Underscores https://underscores.me/, (C) 2012-2020 Automattic, Inc.
+Underscores is distributed under the terms of the GNU GPL v2 or later.
+
+Normalizing styles have been helped along thanks to the fine work of
+Nicolas Gallagher and Jonathan Neal https://necolas.github.io/normalize.css/
+*/
+/* Scroll Bar Style */
+/* width */
+*::-webkit-scrollbar {
+  width: 4px; }
+
+/* Track */
+*::-webkit-scrollbar-track {
+  background: transparent; }
+
+/* Handle */
+*::-webkit-scrollbar-thumb {
+  background: rgba(136, 136, 136, 0.5);
+  border-radius: 5px; }
+
+/* Handle on hover */
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(85, 85, 85, 0.9); }
+
+.post-review {
+  width: 172px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  background: color("black-bg");
+  font-size: 14px;
+  color: color("white");
+  position: absolute;
+  top: -25px;
+  right: -25px;
+}
+
+.post-review span {
+  display: flex;
+  align-items: center;
+}
+
+.post-review span img {
+  margin-right: 8px;
+}
+
+.post-review__like {
+  cursor: pointer;
+}
+
+.post-review__like-icon {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.post-review__like-icon svg {
+  fill: #0A3B64;
+  width: auto;
+  height: 20px;
+  vertical-align: baseline;
+}
+
+.post-review__like-icon svg::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}

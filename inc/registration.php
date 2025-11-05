@@ -1,0 +1,595 @@
+<?php
+
+/**
+ * User Registration
+ * @return void
+ */
+function geffen_update_user() {
+  // Sanitize input data
+  $username = sanitize_text_field($_POST['username']);
+  $lastname = sanitize_text_field($_POST['lastname']);
+  $user_crm = sanitize_text_field($_POST['userCRM']);
+  $user_id = sanitize_text_field($_POST['newUser']);
+  $phone = sanitize_text_field($_POST['phone']);
+  $email = sanitize_email($_POST['email']);
+  $offers = $_POST['offers'] == 'true' ? __('כן', 'geffen') : __('לא', 'geffen');
+  $update_user_crm = null;
+
+  $is_email_updated = '';
+
+  if (empty($username) || empty($lastname) || empty($phone) || empty($email)) {
+    wp_send_json_error([
+      'message' => 'כל השדות נדרשים',
+      'nonce' => $_POST['registration_nonce'],
+      'username' => $username,
+      'lastname' => $lastname,
+      'phone' => $phone,
+      'email' => $email,
+    ]);
+    wp_die();
+  }
+
+  // Verify nonce
+  // if ( ! isset( $_POST['registration_nonce'] ) || ! wp_verify_nonce( $_POST['registration_nonce'], 'geffen_registration' ) ) {
+  //   // Nonce is invalid, handle the error here
+  //   wp_send_json_error( ['message' => 'Invalid nonce', 'nonce' => $_POST['registration_nonce']] );
+  //   wp_die();
+  // }
+
+  $current_user_id = get_current_user_id();
+  if( $user_id == $current_user_id ) {
+    $current_phone = get_user_meta($current_user_id, 'geffen_phone', true);
+
+    if ($current_phone != $phone) {
+      $get_user_ip = $_SERVER['REMOTE_ADDR'];
+      $name= 'Registration Form Error: User ID' . $current_user_id . ', User Current Phone: ' . $current_phone;
+      $message = 'Phone number mismatch: ' . $phone . ' does not match current phone number: ' . $current_phone . ' from IP: ' . $get_user_ip;
+      // Send error email
+      send_error_registration_email($name, $message);
+
+      $log = [
+        [
+          'message' => $message,
+          'current_user_phone' => $current_phone,
+          'phone_from_registration_form' => $phone,
+        ],
+      ];
+      log_data($log, $subdir = 'registration-form');
+
+      wp_send_json_error(['message' => 'Phone number mismatch']);
+    }
+  } else {
+    $get_user_ip = $_SERVER['REMOTE_ADDR'];
+    $name= 'Registration Form Error: User ID' . $current_user_id;
+    $message = 'User ID mismatch: ' . $user_id . ' does not match current user ID: ' . $current_user_id . ' from IP: ' . $get_user_ip;
+    // Send error email
+    send_error_registration_email($name, $message);
+
+    $log = [
+      [
+        'message' => $message,
+        'current_user_id' => $current_user_id,
+        'user_id_from_registration_form' => $user_id,
+      ],
+    ];
+    log_data($log, $subdir = 'registration-form');
+
+    wp_send_json_error(['message' => 'User ID mismatch']);
+  }
+
+  // Update WordPress user data
+  if ($user_id) {
+    $email_exists = email_exists($email);
+    if ($email_exists && $email_exists != $user_id) {
+      // Email already exists, delete user with $user_id
+      wp_delete_user($user_id);
+
+      // Get user ID by existing email
+      $user_id = $email_exists;
+    }
+
+    // Get the current user's email
+    $user_info = get_userdata( $user_id );
+    $user_email = $user_info->user_email;
+
+    // Check if the email exists
+    if ( empty( $user_email ) ) {
+      // Update the email field in the user profile
+      $user_data = array(
+        'ID' => $user_id,
+        'user_email' => $email // Replace with a default or custom value
+      );
+      wp_update_user( $user_data );
+    }
+
+    // Update user meta
+    update_user_meta($user_id, 'first_name', $username);
+    update_user_meta($user_id, 'last_name', $lastname);
+    update_user_meta($user_id, 'email', $email);
+    update_user_meta($user_id, 'geffen_phone', $phone);
+    update_user_meta($user_id, 'billing_first_name', $username);
+    update_user_meta($user_id, 'billing_last_name', $lastname);
+    update_user_meta($user_id, 'billing_email', $email);
+    update_user_meta($user_id, 'billing_phone', $phone);
+
+    // Set billing country to Israel
+    update_user_meta($user_id, 'billing_country', 'IL');
+
+    // Send notification email
+    $user = get_user_by('ID', $user_id);
+    $to = ['responstoclubemailes@geffenmedical1.onmicrosoft.com'];
+    $subject = 'משתמש חדש נרשם: ' . $user->user_login;
+    $message = 'משתמש חדש נרשם באתר: ' . $username . ' ' . $lastname . ' - ' . $email . '(' .$user->user_login . ')' . "\r\n";
+    $message .= 'המשתמש אישר קבלת ניוזלטרים: ' . $offers;
+    $headers = get_header_for_email();
+
+    // Get the user object
+    $user = new WP_User($user_id);
+
+    // update subscription
+    if (!in_array('administrator', $user->roles)) {
+      if ($_POST['offers'] == 'true') {
+        wp_mail($to, $subject, $message, $headers);
+        update_user_meta($user_id, 'geffen_subscription', true);
+        $user->set_role('club_member');
+      }
+
+      if ($_POST['privacy'] == 'true') {
+        update_user_meta($user_id, 'geffen_privacy_policy', true);
+      }
+    }
+  }
+
+  $is_offer = $_POST['offers'] == 'true' ? "Y" : "N";
+  $is_privacy = $_POST['privacy'] == 'true' ? "Y" : "N";
+  $username_replaced = str_replace("'", "~", $username);
+  $lastname_replaced = str_replace("'", "~", $lastname);
+
+  $action = 'Registered new user';
+  $crm_data = array(
+    "FGEF_FIRSTNAME" => $username_replaced,
+    "FGEF_LASTNAME" => $lastname_replaced,
+    "PHONE" => $phone,
+    "EMAIL" => $email,
+    "MGEF_PRI_POLICY_FLAG" => $is_privacy,
+    "OWNERLOGIN" => "apiUser",
+    "CTYPECODE" => "70"
+  );
+
+  if ($user_crm) {
+    $action = 'Updated existing user';
+    // Update CRM data if user CRM ID is provided
+    $update_user_crm = update_existing_customer($user_crm, $crm_data);
+  } else {
+    // Create CRM data if user not in CRM
+    $update_user_crm = create_user_in_crm($crm_data);
+  }
+
+  $data = json_decode($update_user_crm, true);
+
+  if (isset($data['error'])) {
+    // Handle or log the error message
+    wp_send_json(['error' => $data['error']]);
+    wp_die();
+  }
+
+  if ($data['MGEF_MEMBERFLAG'] != 'Y') {
+    $crm_data_mem = [
+      "FGEF_FIRSTNAME" => $username_replaced,
+      "FGEF_LASTNAME" => $lastname_replaced,
+      "EMAIL" => $email,
+      "MGEF_MEMBERFLAG" => $is_offer,
+      "MGEF_PRI_POLICY_FLAG" => $is_privacy,
+      "OWNERLOGIN" => "apiUser"
+    ];
+    $update_club_member = update_existing_customer($data['CUSTNAME'], $crm_data_mem);
+  }
+
+  if ($data) {
+    update_user_meta($user_id, 'user_crm_id', $data['CUSTNAME']);
+  }
+
+  $check_user = get_existing_user_crm($phone);
+
+  $response = [
+    'userID' => $user_id,
+    'user_updated' => $is_email_updated,
+    'userCRM' => $user_crm,
+    'crm_data_sended' => $crm_data,
+    'crm_updated' => $update_user_crm,
+    'user_info' => $check_user
+  ];
+
+  // Log response
+  log_data(['action' => $action, 'response' => $response], 'update-user');
+
+  wp_send_json_success([
+    'message' => __('המשתמש עודכן בהצלחה', 'geffen')
+  ]);
+  wp_die();
+}
+add_action('wp_ajax_geffen_update_user', 'geffen_update_user');
+add_action('wp_ajax_nopriv_geffen_update_user', 'geffen_update_user');
+
+function send_error_registration_email($name, $message) {
+  // Set up the email details
+  $to = ['eli@segevsolutions.com', 'roman@bsx.co.il'];
+  $subject = __('Error in Registration', 'geffen');
+
+  $body = sprintf(
+    __("From Request:<br>\n%s<br><br>\n\nParameters Sent to CRM:<br>\n%s<br><br>", 'geffen'),
+    $name,
+    print_r($message, true)
+  );
+
+  $headers = get_header_for_email();
+
+  // Send the email
+  wp_mail($to, $subject, $body, $headers);
+}
+
+// Save Subscription Data to User Profile
+function save_subscription() {
+
+  $form_data = $_POST['formData'];
+  $data = [];
+
+  foreach ($form_data as $item) {
+    $data[$item['name']] = $item['value'];
+  }
+
+  // Verify nonce
+  if ( ! isset( $data['subscription_nonce'] ) || ! wp_verify_nonce( $data['subscription_nonce'], 'save_subscription' ) ) {
+    // Nonce is invalid, handle the error here
+    wp_send_json_error( ['message' => 'Invalid nonce'] );
+  }
+
+  // Get user ID
+  $user_id = isset( $data['user-id'] ) ? intval( $data['user-id'] ) : 0;
+
+  // Check if user ID is valid
+  if ( ! $user_id ) {
+    // Invalid user ID, handle the error here
+    wp_send_json_error( ['message' => 'Invalid user ID'] );
+  }
+
+  // Check if "offers" checkbox is checked
+  $offers_checked = isset( $data['offers'] ) && $data['offers'] === 'on';
+
+  // Get the user object
+  $user = new WP_User($user_id);
+
+  // Update user meta if "offers" checkbox is checked
+  if (!in_array('administrator', $user->roles)) {
+    if ( $offers_checked ) {
+      update_user_meta( $user_id, 'geffen_subscription', true );
+      $user->set_role('club_member');
+
+      // Send success response
+      wp_send_json_success( ['message' => 'Subscription checked', 'url' => $data['checkout_url']] );
+    } else {
+      // If not checked, remove the meta key
+      update_user_meta( $user_id, 'geffen_subscription', false );
+      $user->set_role('customer');
+
+      // Send error response
+      wp_send_json_error( ['message' => 'Subscription unchecked', 'url' => $data['checkout_url']] );
+    }
+  }
+
+  // Make sure to exit after sending the response
+  wp_die();
+}
+
+add_action('wp_ajax_save_subscription', 'save_subscription');
+add_action('wp_ajax_nopriv_save_subscription', 'save_subscription'); // If you want it to work for non-logged-in users as well
+
+
+// Display phone number and other fields in user profile
+function add_phone_field_to_profile($user)
+{
+  ?>
+  <h3><?php _e('Personal Information', 'geffen'); ?></h3>
+  <table class="form-table">
+    <tr>
+      <th><label for="user_crm_id"><?php _e('User CRM ID', 'geffen'); ?></label></th>
+      <td>
+        <input type="text" name="user_crm_id" id="user_crm_id" value="<?php echo esc_attr(get_user_meta($user->ID, 'user_crm_id', true)); ?>" class="regular-text" />
+        <p class="description"><?php _e('Enter the User CRM ID.', 'geffen'); ?></p>
+      </td>
+    </tr>
+
+    <tr>
+      <th><label for="geffen_phone"><?php _e('Phone Number', 'geffen'); ?></label></th>
+      <td>
+        <input type="text" name="geffen_phone" id="geffen_phone"
+          value="<?php echo esc_attr(get_the_author_meta('geffen_phone', $user->ID)); ?>" class="regular-text"
+          placeholder="123456789" /><br />
+        <span class="description"><?php _e('Please enter your phone number.', 'geffen'); ?></span>
+
+        <input type="hidden" name="geffen_phone_code" id="geffen_phone_code"
+          value="<?php echo esc_attr(get_the_author_meta('geffen_phone_code', $user->ID)); ?>" /><br />
+      </td>
+    </tr>
+
+    <tr>
+      <th><label for="geffen_subscription"><?php _e('Subscribe to Newsletter', 'your_textdomain'); ?></label></th>
+      <td>
+        <input type="checkbox" name="geffen_subscription" id="geffen_subscription" value="1"
+          <?php checked(1, get_user_meta($user->ID, 'geffen_subscription', true), true); ?> />
+        <span class="description"><?php _e('Check to subscribe to the newsletter.', 'your_textdomain'); ?></span>
+      </td>
+    </tr>
+
+    <tr>
+      <th><label for="geffen_privacy_policy"><?php _e('Privacy Policy Agreement', 'geffen'); ?></label></th>
+      <td>
+        <input type="checkbox" name="geffen_privacy_policy" id="geffen_privacy_policy" value="1"
+          <?php checked(1, get_user_meta($user->ID, 'geffen_privacy_policy', true), true); ?> />
+        <span class="description"><?php _e('You must agree to the Privacy Policy.', 'geffen'); ?></span>
+      </td>
+    </tr>
+  </table>
+  <?php
+}
+add_action('show_user_profile', 'add_phone_field_to_profile');
+add_action('edit_user_profile', 'add_phone_field_to_profile');
+
+// Save phone number and other field data
+function save_phone_field_data($user_id) {
+  if (!current_user_can('edit_user', $user_id)) {
+    return false;
+  }
+
+  update_user_meta($user_id, 'geffen_phone', sanitize_text_field($_POST['geffen_phone']));
+  update_user_meta($user_id, 'geffen_subscription', isset($_POST['geffen_subscription']) ? 1 : 0);
+  update_user_meta($user_id, 'user_crm_id', sanitize_text_field($_POST['user_crm_id']));
+  update_user_meta($user_id, 'geffen_privacy_policy', isset($_POST['geffen_privacy_policy']) ? 1 : 0);
+}
+add_action('personal_options_update', 'save_phone_field_data');
+add_action('edit_user_profile_update', 'save_phone_field_data');
+
+
+// Find User ID by phone number
+function get_user_id_by_phone_number($phone_number)
+{
+  global $wpdb;
+
+  // Search for the user ID based on the phone number in user meta
+  $user_ids = $wpdb->get_col(
+    $wpdb->prepare(
+      "SELECT user_id FROM $wpdb->usermeta WHERE meta_key = 'geffen_phone' AND meta_value = %s",
+      $phone_number
+    )
+  );
+
+  // If user IDs are found, return the first one (assuming unique phone numbers)
+  if (!empty($user_ids)) {
+    return $user_ids;
+  }
+
+  return false;
+}
+
+
+// Add custom column for 'Phone Number' in the user table
+function add_custom_user_column($columns)
+{
+  $columns['geffen_phone'] = 'Phone Number';
+  return $columns;
+}
+add_filter('manage_users_columns', 'add_custom_user_column');
+
+
+// Display 'geffen_phone' data in the custom column
+function display_custom_user_column($value, $column_name, $user_id)
+{
+  if ($column_name === 'geffen_phone') {
+    $phone_number = get_user_meta($user_id, 'geffen_phone', true);
+    return $phone_number ? esc_html($phone_number) : 'N/A';
+  }
+  return $value;
+}
+add_filter('manage_users_custom_column', 'display_custom_user_column', 10, 3);
+
+// Add custom columns for 'Phone Number' and 'Subscription' in the user table
+function add_custom_user_columns($columns)
+{
+  $columns['geffen_phone'] = 'Phone Number';
+  $columns['geffen_subscription'] = 'Subscription';
+  return $columns;
+}
+add_filter('manage_users_columns', 'add_custom_user_columns');
+
+// Display 'geffen_phone' and 'geffen_subscription' data in the custom columns
+function display_custom_user_columns($value, $column_name, $user_id)
+{
+  if ($column_name === 'geffen_phone') {
+    $phone_number = get_user_meta($user_id, 'geffen_phone', true);
+    return $phone_number ? esc_html($phone_number) : 'N/A';
+  }
+  if ($column_name === 'geffen_subscription') {
+    $subscription = get_user_meta($user_id, 'geffen_subscription', true);
+    return $subscription ? 'YES' : 'NO';
+  }
+  return $value;
+}
+add_filter('manage_users_custom_column', 'display_custom_user_columns', 10, 3);
+
+// Make custom columns sortable
+function sortable_custom_user_columns($columns)
+{
+  $columns['geffen_phone'] = 'geffen_phone';
+  $columns['geffen_subscription'] = 'geffen_subscription';
+  return $columns;
+}
+add_filter('manage_users_sortable_columns', 'sortable_custom_user_columns');
+
+// Handle sorting by custom columns
+function custom_column_orderby($query)
+{
+  if (!is_admin()) {
+    return;
+  }
+
+  $orderby = $query->get('orderby');
+  if ($orderby == 'geffen_phone') {
+    $query->set('meta_key', 'geffen_phone');
+    $query->set('orderby', 'meta_value');
+  }
+  if ($orderby == 'geffen_subscription') {
+    $query->set('meta_key', 'geffen_subscription');
+    $query->set('orderby', 'meta_value');
+  }
+}
+add_action('pre_get_users', 'custom_column_orderby');
+
+// Save Subscription
+function geffen_join_club() {
+  // Check if the user is logged in
+  $user_id = get_current_user_id();
+  if (!$user_id) {
+    $response = ['error' => 'User not logged in'];
+    log_data($response, 'join-club');
+    wp_send_json_error($response);
+    return;
+  }
+
+  // Get the user object
+  $user = new WP_User($user_id);
+
+  // Check if the user is not an administrator
+  if (!in_array('administrator', $user->roles)) {
+
+    // Check if the 'subscribed' checkbox is set to 'on'
+    if (isset($_POST['subscribed']) && $_POST['subscribed'] === 'on') {
+      // Update user subscription and role
+      $update_wp_user = update_user_meta($user_id, 'geffen_subscription', true);
+      $user->set_role('club_member');
+
+      // Log the WordPress user update
+      log_data(['action' => 'Subscribed to club', 'user_id' => $user_id, 'meta_update' => $update_wp_user], 'join-club');
+
+      // Check if the user has a CRM customer ID
+      $customer = get_user_meta($user_id, 'user_crm_id', true);
+      $name = get_user_meta($user_id, 'first_name', true);
+      $last_name = get_user_meta($user_id, 'last_name', true);
+      $email = get_user_meta($user_id, 'email', true);
+
+      if ($customer) {
+        // Update CRM data
+        $crm_data_array = [
+          "FGEF_FIRSTNAME" => $name,
+          "FGEF_LASTNAME" => $last_name,
+          "EMAIL" => $email,
+          "MGEF_MEMBERFLAG" => "Y",
+          "MGEF_PRI_POLICY_FLAG" => "Y",
+          "OWNERLOGIN" => "apiUser"
+        ];
+        $update_crm_user = update_existing_customer($customer, $crm_data_array);
+
+        // Log the CRM update
+        log_data(['action' => 'CRM Update', 'crm_data' => $crm_data_array, 'response' => $update_crm_user], 'join-club');
+      } else {
+        $update_crm_user = $update_wp_user;
+
+        // Log fallback update
+        log_data(['action' => 'Fallback Update', 'user_id' => $user_id, 'meta_update' => $update_wp_user], 'join-club');
+      }
+
+      // Send a success response with the updated data
+      $response = ['success' => true, 'user_id' => $user_id, 'crm_update' => $update_crm_user];
+      log_data($response, 'join-club');
+      wp_send_json_success($response);
+    } else {
+      // If 'subscribed' is not checked, remove the subscription and reset role
+      $response = update_user_meta($user_id, 'geffen_subscription', false);
+      $user->set_role('customer');
+
+      // Log the unsubscription action
+      log_data(['action' => 'Unsubscribed from club', 'user_id' => $user_id, 'meta_update' => $response], 'join-club');
+
+      // Send error response indicating the subscription was removed
+      wp_send_json_error(['message' => 'Subscription removed', 'response' => $response]);
+    }
+  } else {
+    // Log admin action attempt
+    $response = ['error' => 'Action not allowed for administrators', 'user_id' => $user_id];
+    log_data($response, 'join-club');
+    wp_send_json_error($response);
+  }
+}
+
+add_action('wp_ajax_geffen_join_club', 'geffen_join_club');
+add_action('wp_ajax_nopriv_geffen_join_club', 'geffen_join_club');
+
+
+// Allow duplicate email addresses during user registration
+add_filter('wpmu_validate_user_signup', function ($result) {
+  if (isset($result['errors']->errors['user_email'])) {
+    unset($result['errors']->errors['user_email']);
+  }
+  return $result;
+});
+
+add_filter('registration_errors', function ($errors, $sanitized_user_login, $user_email) {
+  if (isset($errors->errors['email_exists'])) {
+    unset($errors->errors['email_exists']);
+  }
+  return $errors;
+}, 10, 3);
+
+// Enforce uniqueness for 'geffen_phone'
+add_action('user_profile_update_errors', 'validate_unique_geffen_phone', 10, 3);
+function validate_unique_geffen_phone($errors, $update, $user) {
+  if (!empty($_POST['geffen_phone'])) {
+    $geffen_phone = sanitize_text_field($_POST['geffen_phone']);
+    $existing_user = get_users([
+      'meta_key' => 'geffen_phone',
+      'meta_value' => $geffen_phone,
+      'exclude' => [$user->ID], // Exclude the current user
+      'number' => 1,
+    ]);
+
+    if (!empty($existing_user)) {
+      $errors->add('geffen_phone_error', __('This phone number is already in use.'));
+    }
+  }
+}
+
+// Save the 'geffen_phone' field when user profile is updated
+add_action('personal_options_update', 'save_geffen_phone_field');
+add_action('edit_user_profile_update', 'save_geffen_phone_field');
+function save_geffen_phone_field($user_id) {
+  if (!current_user_can('edit_user', $user_id)) {
+    return false;
+  }
+
+  if (!empty($_POST['geffen_phone'])) {
+    update_user_meta($user_id, 'geffen_phone', sanitize_text_field($_POST['geffen_phone']));
+  }
+}
+
+// Authenticate users with 'geffen_phone'
+add_filter('authenticate', function ($user, $username, $password) {
+  if (!empty($username)) {
+    // Search for a user by 'geffen_phone'
+    $user_query = get_users([
+      'meta_key' => 'geffen_phone',
+      'meta_value' => $username,
+      'number' => 1,
+      'fields' => ['ID', 'user_login'],
+    ]);
+
+    if (!empty($user_query)) {
+      $user = get_user_by('id', $user_query[0]->ID);
+    }
+  }
+
+  // Validate password for the identified user
+  if ($user && wp_check_password($password, $user->user_pass, $user->ID)) {
+    return $user;
+  }
+
+  return null; // Authentication fails
+}, 10, 3);

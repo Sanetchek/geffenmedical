@@ -1,0 +1,14 @@
+node_modules
+/vendor
+/key/
+*.pem
+*.json
+!package.json
+!package-lock.json
+!composer.json
+!composer.lock
+!cities.json
+!Indoor.json
+!.stylelintrc.json
+!manifest.json
+!.minify.json
