@@ -1,0 +1,9 @@
+/**
+ * Max Quantity on Hands styles for WooCommerce Side Cart Premium
+ */
+.xoo-wsc-plus.xoo-disabled {
+    opacity: 0.45 !important;
+    pointer-events: none !important;
+    cursor: not-allowed !important;
+}
+

@@ -967,3 +967,168 @@ function add_custname_id() {
 }
 add_action('wp_ajax_add_custname_id', 'add_custname_id');
 add_action('wp_ajax_nopriv_add_custname_id', 'add_custname_id');
+
+/**
+ * Server-side validation for max quantity on hands
+ * Validates quantity updates in WooCommerce Side Cart Premium
+ */
+add_filter('xoo_wsc_update_quantity', 'geffen_validate_max_quantity_on_hands', 10, 3);
+
+function geffen_validate_max_quantity_on_hands($validated, $cart_key, $new_qty)
+{
+  if (!$validated || !$cart_key || !function_exists('WC') || !WC()->cart) {
+    return $validated;
+  }
+
+  $cart_item = WC()->cart->get_cart_item($cart_key);
+
+  if (!$cart_item) {
+    return $validated;
+  }
+
+  $product_id = $cart_item['product_id'];
+  $max_qty = get_post_meta($product_id, '_max_quantity_on_hands', true);
+
+  if ($max_qty && intval($max_qty) > 0) {
+    $max_qty_int = intval($max_qty);
+
+    if ($new_qty > $max_qty_int) {
+      // Set notice and return false to prevent update
+      wc_add_notice(
+        sprintf(
+          __('Maximum quantity allowed for this product is %d.', 'geffen'),
+          $max_qty_int
+        ),
+        'error'
+      );
+      return false;
+    }
+  }
+
+  return $validated;
+}
+
+/**
+ * Get max quantity limits for cart items
+ */
+function geffen_get_max_quantity_limits()
+{
+  if (!function_exists('WC') || !WC()->cart) {
+    return array('limits_by_key' => array(), 'limits_by_product' => array());
+  }
+
+  $limits_by_key = [];
+  $limits_by_product = [];
+
+  foreach (WC()->cart->get_cart() as $cart_item_key => $cart_item) {
+    $product_id = $cart_item['product_id'];
+    $max_qty = get_post_meta($product_id, '_max_quantity_on_hands', true);
+    $max_qty_int = $max_qty ? intval($max_qty) : 0;
+
+    if ($max_qty_int > 0) {
+      $limits_by_key[$cart_item_key] = $max_qty_int;
+      if (!isset($limits_by_product[$product_id])) {
+        $limits_by_product[$product_id] = $max_qty_int;
+      }
+    }
+  }
+
+  return array(
+    'limits_by_key' => $limits_by_key,
+    'limits_by_product' => $limits_by_product,
+  );
+}
+
+/**
+ * Enqueue scripts and styles for max quantity validation
+ */
+function geffen_enqueue_side_cart_max_quantity_assets()
+{
+  // Enqueue CSS (always, as cart might be empty initially)
+  wp_enqueue_style(
+    'geffen-side-cart-max-quantity',
+    get_template_directory_uri() . '/assets/css/side-cart-max-quantity.css',
+    array(),
+    _S_VERSION
+  );
+
+  // Enqueue JS (always, as cart might be empty initially)
+  wp_enqueue_script(
+    'geffen-side-cart-max-quantity',
+    get_template_directory_uri() . '/assets/js/side-cart-max-quantity.js',
+    array('jquery'),
+    _S_VERSION,
+    true
+  );
+
+  // Get limits data
+  $limits_data = geffen_get_max_quantity_limits();
+
+  // Localize script with data
+  wp_localize_script(
+    'geffen-side-cart-max-quantity',
+    'geffenMaxQuantity',
+    array(
+      'limitsByKey' => $limits_data['limits_by_key'],
+      'limitsByProduct' => $limits_data['limits_by_product'],
+    )
+  );
+}
+
+add_action('wp_enqueue_scripts', 'geffen_enqueue_side_cart_max_quantity_assets');
+
+/**
+ * Initialize max quantity limits after cart fragments are loaded
+ */
+add_action('wp_footer', function () {
+  // Check if script is enqueued
+  if (!wp_script_is('geffen-side-cart-max-quantity', 'enqueued')) {
+    return;
+  }
+  ?>
+  <script>
+    (function ($) {
+      if (typeof geffenMaxQuantity !== 'undefined' && typeof window.geffenMaxQuantityInit === 'function') {
+        window.geffenMaxQuantityInit(
+          geffenMaxQuantity.limitsByKey || {},
+          geffenMaxQuantity.limitsByProduct || {}
+        );
+      }
+    })(jQuery);
+  </script>
+  <?php
+}, 99);
+
+/**
+ * Update max quantity limits data when cart fragments are refreshed
+ * This ensures limits are updated when cart is modified via AJAX
+ */
+add_filter('woocommerce_add_to_cart_fragments', 'geffen_update_max_quantity_fragments');
+
+function geffen_update_max_quantity_fragments($fragments)
+{
+  $limits_data = geffen_get_max_quantity_limits();
+
+  // Only add script if there are limits to update
+  if (!empty($limits_data['limits_by_key']) || !empty($limits_data['limits_by_product'])) {
+    // Add script to update limits in fragments
+    ob_start();
+    ?>
+    <script type="text/javascript" class="geffen-max-quantity-update">
+      (function ($) {
+        if (typeof geffenMaxQuantity !== 'undefined' && typeof window.geffenMaxQuantityInit === 'function') {
+          geffenMaxQuantity.limitsByKey = <?php echo wp_json_encode($limits_data['limits_by_key']); ?>;
+          geffenMaxQuantity.limitsByProduct = <?php echo wp_json_encode($limits_data['limits_by_product']); ?>;
+          window.geffenMaxQuantityInit(
+            geffenMaxQuantity.limitsByKey || {},
+            geffenMaxQuantity.limitsByProduct || {}
+          );
+        }
+      })(jQuery);
+    </script>
+    <?php
+    $fragments['script.geffen-max-quantity-update'] = ob_get_clean();
+  }
+
+  return $fragments;
+}
