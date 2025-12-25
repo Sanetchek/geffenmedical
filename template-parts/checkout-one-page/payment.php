@@ -35,6 +35,9 @@ if ( ! wp_doing_ajax() ) {
 					<img src="<?php echo assets('img/payments/transparent-diners.webp') ?>" alt="Transparent diner payment" loading="lazy" class="payment-icon" width="32" height="25">
 					<img src="<?php echo assets('img/payments/visa.webp') ?>" alt="Visa" loading="lazy" class="payment-icon" width="78" height="25">
 				</div>
+				<div class="payment-box-message payment_method_<?php echo esc_attr($gateway->id); ?>">
+					<?php $gateway->payment_fields(); ?>
+				</div>
 			<?php endif; ?>
 		</li>
 

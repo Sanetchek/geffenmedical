@@ -205,47 +205,37 @@ add_action('wp_ajax_save_done_fields', 'save_done_fields');
 add_action('wp_ajax_nopriv_save_done_fields', 'save_done_fields');
 
 // Save Billing form
-function save_billing_user_profile($user_id, $formFields)
+function save_billing_fields($user_id, $formFields)
 {
-  if ($user_id && $formFields) {
-    // Update billing meta fields only if they are empty, using shipping fields
-    if (empty(get_user_meta($user_id, 'billing_first_name', true))) {
-      update_user_meta($user_id, 'billing_first_name', $formFields['shipping_first_name']);
-    }
-    if (empty(get_user_meta($user_id, 'billing_last_name', true))) {
-      update_user_meta($user_id, 'billing_last_name', $formFields['shipping_last_name']);
-    }
-    if (empty(get_user_meta($user_id, 'billing_company', true))) {
-      update_user_meta($user_id, 'billing_company', $formFields['shipping_company']);
-    }
-    if (empty(get_user_meta($user_id, 'billing_address_1', true))) {
-      update_user_meta($user_id, 'billing_address_1', $formFields['shipping_street']);
-    }
-    if (empty(get_user_meta($user_id, 'billing_city', true))) {
-      update_user_meta($user_id, 'billing_city', $formFields['shipping_city']);
-    }
-    if (empty(get_user_meta($user_id, 'billing_postcode', true))) {
-      update_user_meta($user_id, 'billing_postcode', $formFields['shipping_postal']);
-    }
-    if (empty(get_user_meta($user_id, 'billing_country', true))) {
-      update_user_meta($user_id, 'billing_country', 'IL');
-    }
-    if (empty(get_user_meta($user_id, 'billing_phone', true))) {
-      update_user_meta($user_id, 'billing_phone', $formFields['shipping_phone']);
-    }
-    if (empty(get_user_meta($user_id, 'billing_email', true))) {
-      update_user_meta($user_id, 'billing_email', $formFields['shipping_email']);
-    }
-    if (empty(get_user_meta($user_id, 'billing_address_type', true))) {
-      update_user_meta($user_id, 'billing_address_type', $formFields['shipping_address_type']);
-    }
-    if (empty(get_user_meta($user_id, 'billing_house_number', true))) {
-      update_user_meta($user_id, 'billing_house_number', $formFields['shipping_house_number']);
-    }
-    if (empty(get_user_meta($user_id, 'billing_apartment_number', true))) {
-      update_user_meta($user_id, 'billing_apartment_number', $formFields['shipping_apartment']);
-    }
-  }
+  update_user_meta($user_id, 'billing_first_name', $formFields['shipping_first_name']);
+  update_user_meta($user_id, 'billing_last_name', $formFields['shipping_last_name']);
+  update_user_meta($user_id, 'billing_company', $formFields['shipping_company']);
+  update_user_meta($user_id, 'billing_address_1', $formFields['shipping_street']);
+  update_user_meta($user_id, 'billing_city', $formFields['shipping_city']);
+  update_user_meta($user_id, 'billing_postcode', $formFields['shipping_postal']);
+  update_user_meta($user_id, 'billing_country', $formFields['email']);
+  update_user_meta($user_id, 'billing_phone', $formFields['shipping_phone']);
+  update_user_meta($user_id, 'billing_email', $formFields['shipping_email']);
+  update_user_meta($user_id, 'billing_address_type', $formFields['shipping_address_type']);
+  update_user_meta($user_id, 'billing_house_number', $formFields['shipping_house_number']);
+  update_user_meta($user_id, 'billing_apartment_number', $formFields['shipping_apartment']);
+}
+
+// Save Shipping fields
+function save_shipping_fields($user_id, $formFields)
+{
+  update_user_meta($user_id, 'shipping_first_name', $formFields['shipping_first_name']);
+  update_user_meta($user_id, 'shipping_last_name', $formFields['shipping_last_name']);
+  update_user_meta($user_id, 'shipping_company', $formFields['shipping_company']);
+  update_user_meta($user_id, 'shipping_address_1', $formFields['shipping_street']);
+  update_user_meta($user_id, 'shipping_city', $formFields['shipping_city']);
+  update_user_meta($user_id, 'shipping_postcode', $formFields['shipping_postal']);
+  update_user_meta($user_id, 'shipping_country', $formFields['email']);
+  update_user_meta($user_id, 'shipping_phone', $formFields['shipping_phone']);
+  update_user_meta($user_id, 'shipping_email', $formFields['shipping_email']);
+  update_user_meta($user_id, 'shipping_address_type', $formFields['shipping_address_type']);
+  update_user_meta($user_id, 'shipping_house_number', $formFields['shipping_house_number']);
+  update_user_meta($user_id, 'shipping_apartment_number', $formFields['shipping_apartment']);
 }
 
 // Save Shipping form
@@ -259,21 +249,11 @@ function save_shipping_user_profile()
 
     // Update user meta with the form data
     if ($user_id) {
-      update_user_meta($user_id, 'shipping_first_name', $formFields['shipping_first_name']);
-      update_user_meta($user_id, 'shipping_last_name', $formFields['shipping_last_name']);
-      update_user_meta($user_id, 'shipping_company', $formFields['shipping_company']);
-      update_user_meta($user_id, 'shipping_address_1', $formFields['shipping_street']);
-      update_user_meta($user_id, 'shipping_city', $formFields['shipping_city']);
-      update_user_meta($user_id, 'shipping_postcode', $formFields['shipping_postal']);
-      update_user_meta($user_id, 'shipping_country', $formFields['email']);
-      update_user_meta($user_id, 'shipping_phone', $formFields['shipping_phone']);
-      update_user_meta($user_id, 'shipping_email', $formFields['shipping_email']);
-      update_user_meta($user_id, 'shipping_address_type', $formFields['shipping_address_type']);
-      update_user_meta($user_id, 'shipping_house_number', $formFields['shipping_house_number']);
-      update_user_meta($user_id, 'shipping_apartment_number', $formFields['shipping_apartment']);
+      // Save shipping fields
+      save_shipping_fields($user_id, $formFields);
 
       // Save billing user profile if meta is empty
-      save_billing_user_profile($user_id, $formFields);
+      save_billing_fields($user_id, $formFields);
 
       // Variables
       $coupon_codes = $_POST['coupons'];

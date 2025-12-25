@@ -426,6 +426,11 @@ function geffen_create_order() {
   $payment_method = $data['payment_method'];
   $order->set_payment_method( $payment_method );
 
+  // Save tranzila payments amount from payments_select field
+  if (isset($data['payments_select']) && !empty($data['payments_select'])) {
+    $order->update_meta_data('tranzila_payments_amount', sanitize_text_field($data['payments_select']));
+  }
+
   // Apply coupon codes
   if (!empty($data['coupon_codes'])) {
     $coupon_codes = explode(',', $data['coupon_codes']);
@@ -578,20 +583,20 @@ function create_shipping_array($data) {
   if (empty($data)) { return; }
 
   return [
-    'first_name'        => $data['shipping_first_name'],
-    'last_name'         => $data['shipping_last_name'],
-    'company'           => $data['shipping_company'],
-    'email'             => $data['shipping_email'],
-    'phone'             => $data['shipping_phone'],
-    'address_1'         => $data['shipping_address_1'],
-    'address_2'         => $data['shipping_address_2'],
-    'city'              => $data['shipping_city'],
-    'state'             => $data['shipping_state'],
-    'postcode'          => $data['shipping_postcode'],
-    'country'           => $data['shipping_country'],
-    'address_type'      => $data['shipping_address_type'],
-    'house_number'      => $data['shipping_house_number'],
-    'apartment_number'  => $data['shipping_apartment_number']
+    'first_name'        => $data['billing_first_name'],
+    'last_name'         => $data['billing_last_name'],
+    'company'           => $data['billing_company'],
+    'email'             => $data['billing_email'],
+    'phone'             => $data['billing_phone'],
+    'address_1'         => $data['billing_address_1'],
+    'address_2'         => $data['billing_address_2'],
+    'city'              => $data['billing_city'],
+    'state'             => $data['billing_state'],
+    'postcode'          => $data['billing_postcode'],
+    'country'           => $data['billing_country'],
+    'address_type'      => $data['billing_address_type'],
+    'house_number'      => $data['billing_house_number'],
+    'apartment_number'  => $data['billing_apartment_number']
   ];
 }
 
