@@ -73,6 +73,31 @@ defined( 'ABSPATH' ) || exit;
 					</li>
 				<?php endforeach; ?>
 			</ul>
+			<?php
+			// Add hidden fields for shipping method title and price
+			// These will be updated by JavaScript when method changes
+			$chosen_method = '';
+			$chosen_method_title = '';
+			$chosen_method_price = 0;
+
+			if (!empty($chosen_methods) && isset($chosen_methods[0])) {
+				$chosen_method = $chosen_methods[0];
+				foreach ($available_methods as $method) {
+					if ($method->id === $chosen_method) {
+						$chosen_method_title = $method->get_label();
+						$chosen_method_price = floatval($method->get_cost());
+						break;
+					}
+				}
+			} elseif (!empty($available_methods)) {
+				// Default to first method if none chosen
+				$first_method = reset($available_methods);
+				$chosen_method_title = $first_method->get_label();
+				$chosen_method_price = floatval($first_method->get_cost());
+			}
+			?>
+			<input type="hidden" id="shipping_method_title" name="shipping_method_title" value="<?php echo esc_attr($chosen_method_title); ?>">
+			<input type="hidden" id="shipping_method_price" name="shipping_method_price" value="<?php echo esc_attr($chosen_method_price); ?>">
 		<?php endif; ?>
 	</div>
 </section>

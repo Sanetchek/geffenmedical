@@ -850,7 +850,7 @@ $(document).ready(function () {
       e.preventDefault();
       const couponCode = $('#coupon_code').val();
       let couponCodes = $('#coupon_codes').val();
-      const shippingMethod = $('.shipping_method:checked').val();
+      const shippingMethod = getShippingMethodValue();
       let action = 'apply_coupon'
 
       if (couponCodes) {
@@ -936,8 +936,67 @@ $(document).ready(function () {
               }
           });
       }
+  /**
+   * Update hidden shipping method fields (title and price)
+   */
+  function updateShippingMethodFields(shippingMethodValue) {
+    if (!shippingMethodValue) {
+      return;
+    }
+
+    const $selectedMethod = $('.shipping_method[value="' + shippingMethodValue + '"]');
+    if ($selectedMethod.length) {
+      const cost = parseFloat($selectedMethod.attr('data-cost')) || 0;
+      const label = $selectedMethod.closest('li').find('.shipping__choice_name').text().trim();
+
+      // Update or create hidden fields
+      let $titleField = $('#shipping_method_title');
+      let $priceField = $('#shipping_method_price');
+
+      if ($titleField.length === 0) {
+        // Create hidden fields if they don't exist
+        $titleField = $('<input>', {
+          type: 'hidden',
+          id: 'shipping_method_title',
+          name: 'shipping_method_title'
+        });
+        $priceField = $('<input>', {
+          type: 'hidden',
+          id: 'shipping_method_price',
+          name: 'shipping_method_price'
+        });
+
+        // Insert after shipping methods section
+        $('.woocommerce-shipping-totals').append($titleField).append($priceField);
+      }
+
+      $titleField.val(label);
+      $priceField.val(cost.toFixed(2));
+    }
+  }
+
+  /**
+   * Get shipping method value with fallback
+   */
+  function getShippingMethodValue() {
+    const $checkedMethod = $('.shipping_method:checked');
+    if ($checkedMethod.length) {
+      return $checkedMethod.val();
+    }
+
+    // Fallback: try to get from first available method
+    const $firstMethod = $('.shipping_method').first();
+    if ($firstMethod.length) {
+      return $firstMethod.val();
+    }
+
+    return null;
+  }
+
   /** Shipping Tabs */
   if ( $('.shipping_method').length ) {
+    // Initialize on page load
+    let hasCheckedMethod = false;
     $('.shipping_method').each(function(i, item) {
       if ($(item).is(':checked')) {
         const tab = $(item).attr('data-tab')
@@ -945,8 +1004,30 @@ $(document).ready(function () {
 
         $('#shipping_details_' + tab).show()
         shipping_mandatory(value)
+        updateShippingMethodFields(value)
+        hasCheckedMethod = true;
       }
     })
+
+    // If no method is checked, check the first one and update fields
+    if (!hasCheckedMethod) {
+      const $firstMethod = $('.shipping_method').first();
+      if ($firstMethod.length) {
+        $firstMethod.prop('checked', true);
+        const value = $firstMethod.val();
+        const tab = $firstMethod.attr('data-tab');
+
+        $('#shipping_details_' + tab).show();
+        shipping_mandatory(value);
+        updateShippingMethodFields(value);
+      }
+    } else {
+      // Ensure fields are updated even if method is already checked
+      const checkedValue = getShippingMethodValue();
+      if (checkedValue) {
+        updateShippingMethodFields(checkedValue);
+      }
+    }
 
     $('.shipping_method').on('change', function () {
       const tabNumber = $(this).attr('data-tab')
@@ -955,6 +1036,9 @@ $(document).ready(function () {
       $('.shipping__details').hide()
       $('#shipping_details_' + tabNumber).show()
       shipping_mandatory(value);
+
+      // Update hidden fields
+      updateShippingMethodFields(value);
 
       if ($('.woocommerce-checkout').length) {
         const coupons = $('#coupon_codes').val()
@@ -979,6 +1063,11 @@ $(document).ready(function () {
               $('#order_review').html(response.data.review_order)
               $('#checkout_payment').removeClass('disabled')
               shipping_mandatory(value);
+
+              // Update hidden fields after DOM update
+              setTimeout(function() {
+                updateShippingMethodFields(value);
+              }, 100);
 
               // Hide Preloader
               $('.lds-ring, .checkout-overlay').fadeOut()
@@ -1227,7 +1316,7 @@ $(document).ready(function () {
     $('#billing_form').on('submit', function (e) {
       e.preventDefault()
       const formData = $(this).serialize();
-      const shippingMethod = $('.shipping_method:checked').val();
+      const shippingMethod = getShippingMethodValue();
       let coupons = $('#coupon_codes').val()
 
       $.ajax({
@@ -1252,6 +1341,14 @@ $(document).ready(function () {
             // Handle the success response if needed
             $('#order_review').html(response.review_order)
             $('#shipping_message').slideUp()
+
+            // Update shipping method fields after DOM update
+            setTimeout(function() {
+              const shippingMethod = getShippingMethodValue();
+              if (shippingMethod) {
+                updateShippingMethodFields(shippingMethod);
+              }
+            }, 100);
           }
 
           $('.popup-content-contactpage, .page-overlay').fadeOut();
@@ -1367,21 +1464,19 @@ $(document).ready(function () {
   if ($('#shipping_form').length) {
     $('#shipping_form').on('submit', function (e) {
       e.preventDefault()
-      // For Checkout one page
-      if ($('.woocommerce-checkout').length) {
-        const formData = $(this).serialize();
-        const shippingMethod = $('.shipping_method:checked').val();
-        const coupons = $('#coupon_codes').val()
 
-        const data = {
-          action: 'save_shipping_user_profile', // Action name to handle in PHP
-          formData: formData, // Serialized form data
-          shipping_method: shippingMethod,
-          coupons
-        }
+      const formData = $(this).serialize();
+      const shippingMethod = getShippingMethodValue() || '';
+      const coupons = $('#coupon_codes').val() || '';
 
-        save_shipping_data(data)
+      const data = {
+        action: 'save_shipping_user_profile', // Action name to handle in PHP
+        formData: formData, // Serialized form data
+        shipping_method: shippingMethod,
+        coupons: coupons
       }
+
+      save_shipping_data(data)
     })
   }
 
@@ -1395,14 +1490,33 @@ $(document).ready(function () {
         $('.checkout-ring').fadeIn()
       },
       success: function (response) {
-        // Handle the success response
-        $('.shipping-name').html(response.name)
-        $('.shipping-city').html(response.city)
-        $('.shipping-address').html(response.address)
+        // Handle WordPress AJAX response format (success: true/false)
+        let responseData = response;
+        if (response.success !== undefined) {
+          responseData = response.data || response;
+        }
 
-        if ($('.woocommerce-checkout').length) {
-          // Handle the success response if needed
-          $('#order_review').html(response.review_order)
+        // Check if response contains error message
+        if (response.success === false) {
+          alert(response.data || response.message || 'An error occurred while saving data');
+          $('.checkout-ring').fadeOut();
+          return;
+        }
+
+        // Handle the success response
+        if (responseData.name) {
+          $('.shipping-name').html(responseData.name)
+        }
+        if (responseData.city) {
+          $('.shipping-city').html(responseData.city)
+        }
+        if (responseData.address) {
+          $('.shipping-address').html(responseData.address)
+        }
+
+        // Update order review if on checkout page
+        if ($('.woocommerce-checkout').length && responseData.review_order) {
+          $('#order_review').html(responseData.review_order)
         }
 
         $('.popup-content-contactpage, .page-overlay').fadeOut();
@@ -1412,7 +1526,29 @@ $(document).ready(function () {
       },
       error: function (xhr, status, error) {
         // Handle errors
-        console.error('Error:', error);
+        console.error('AJAX Error:', {
+          status: status,
+          error: error,
+          responseText: xhr.responseText,
+          statusCode: xhr.status
+        });
+
+        let errorMessage = 'An error occurred while saving data';
+
+        // Try to parse error response
+        try {
+          const errorResponse = JSON.parse(xhr.responseText);
+          if (errorResponse.data && errorResponse.data.message) {
+            errorMessage = errorResponse.data.message;
+          } else if (errorResponse.message) {
+            errorMessage = errorResponse.message;
+          }
+        } catch (e) {
+          // Use default error message
+        }
+
+        alert(errorMessage);
+        $('.checkout-ring').fadeOut();
       }
     });
   }
@@ -2062,7 +2198,7 @@ $(document).ready(function () {
   $('body').on('click', '.geffen-remove-coupon', function () {
     const btn = $(this)
     const couponCode = $(btn).data('coupon');
-    const shippingMethod = $('.shipping_method:checked').val();
+    const shippingMethod = getShippingMethodValue();
     let coupons = $('#coupon_codes').val()
 
     let couponsArray = coupons.split(',')
@@ -2091,6 +2227,14 @@ $(document).ready(function () {
         $('#order_review').html(response.data.review_order)
         $(btn).prop('disabled', false)
 
+        // Update shipping method fields after DOM update
+        setTimeout(function() {
+          const shippingMethod = getShippingMethodValue();
+          if (shippingMethod) {
+            updateShippingMethodFields(shippingMethod);
+          }
+        }, 100);
+
         // Hide Preloader
         $('.lds-ring, .checkout-overlay').fadeOut()
 
@@ -2104,7 +2248,19 @@ $(document).ready(function () {
     const btn = $(this)
     const form = $('#geffen_checkout_form')
     const subscribe = $('#subscribe-offers')
-    const value = $('.shipping_method:checked').val()
+
+    // Get shipping method with fallback
+    let value = getShippingMethodValue();
+
+    // Validate shipping method exists
+    if (!value) {
+      alert('אנא בחרו שיטת משלוח');
+      return;
+    }
+
+    // Ensure hidden fields are updated before form submission
+    updateShippingMethodFields(value);
+
     const shippingFieldsIsEmpty = shipping_mandatory(value);
 
     if (shippingFieldsIsEmpty) {
@@ -2120,7 +2276,26 @@ $(document).ready(function () {
     }
 
     // Serialize form data and concatenate it with the existing data object
-    const formData = form.serialize();
+    // Include shipping method in serialization if not already included
+    let formData = form.serialize();
+
+    // Ensure shipping method is included in form data
+    if (formData.indexOf('shipping_method') === -1) {
+      formData += '&shipping_method[0]=' + encodeURIComponent(value);
+    }
+
+    // Ensure hidden fields are included
+    const titleValue = $('#shipping_method_title').val();
+    const priceValue = $('#shipping_method_price').val();
+
+    if (titleValue && formData.indexOf('shipping_method_title') === -1) {
+      formData += '&shipping_method_title=' + encodeURIComponent(titleValue);
+    }
+
+    if (priceValue && formData.indexOf('shipping_method_price') === -1) {
+      formData += '&shipping_method_price=' + encodeURIComponent(priceValue);
+    }
+
     data.formData = formData;
 
     $.ajax({
@@ -2141,10 +2316,27 @@ $(document).ready(function () {
             window.location.href = response.data.thankyoulink;
           }
         } else {
-          $('#shipping_message').slideDown()
+          // Show error message
+          const errorMessage = response.data && response.data.message
+            ? response.data.message
+            : 'אירעה שגיאה בעת יצירת ההזמנה. אנא נסו שוב.';
+
+          alert(errorMessage);
+
+          // If error is related to shipping, show shipping message
+          if (response.data && response.data.message && response.data.message.indexOf('משלוח') !== -1) {
+            $('#shipping_message').slideDown()
+          }
+
           $('.checkout-ring').fadeOut()
-          $('#cart_to_checkout, .checkout-payment').addClass('disabled');
+          $(btn).prop('disabled', false)
         }
+      },
+      error: function (xhr, status, error) {
+        console.error('AJAX Error:', error);
+        alert('אירעה שגיאה בעת יצירת ההזמנה. אנא נסו שוב.');
+        $('.checkout-ring').fadeOut()
+        $(btn).prop('disabled', false)
       },
     });
   })
@@ -2193,7 +2385,7 @@ $(document).ready(function () {
         action: 'update_chechout_product_items',
         item_key: productKey,
         quantity,
-        shipping_method: $('.shipping_method:checked').val(),
+        shipping_method: getShippingMethodValue(),
         coupon_codes: $('#coupon_codes').val(),
         nonce: $('#woocommerce-cart-nonce').val(), // Nonce for security verification
       },
@@ -2206,6 +2398,14 @@ $(document).ready(function () {
         $('#checkout_form_items').html(response.data.form_items)
         $('#order_review').html(response.data.review_order)
         $(btn).prop('disabled', false)
+
+        // Update shipping method fields after DOM update
+        setTimeout(function() {
+          const shippingMethod = getShippingMethodValue();
+          if (shippingMethod) {
+            updateShippingMethodFields(shippingMethod);
+          }
+        }, 100);
 
         // Hide Preloader
         $('.lds-ring, .checkout-overlay').fadeOut()

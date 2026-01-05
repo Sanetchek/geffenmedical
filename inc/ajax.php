@@ -207,88 +207,186 @@ add_action('wp_ajax_nopriv_save_done_fields', 'save_done_fields');
 // Save Billing form
 function save_billing_fields($user_id, $formFields)
 {
-  update_user_meta($user_id, 'billing_first_name', $formFields['shipping_first_name']);
-  update_user_meta($user_id, 'billing_last_name', $formFields['shipping_last_name']);
-  update_user_meta($user_id, 'billing_company', $formFields['shipping_company']);
-  update_user_meta($user_id, 'billing_address_1', $formFields['shipping_street']);
-  update_user_meta($user_id, 'billing_city', $formFields['shipping_city']);
-  update_user_meta($user_id, 'billing_postcode', $formFields['shipping_postal']);
-  update_user_meta($user_id, 'billing_country', $formFields['email']);
-  update_user_meta($user_id, 'billing_phone', $formFields['shipping_phone']);
-  update_user_meta($user_id, 'billing_email', $formFields['shipping_email']);
-  update_user_meta($user_id, 'billing_address_type', $formFields['shipping_address_type']);
-  update_user_meta($user_id, 'billing_house_number', $formFields['shipping_house_number']);
-  update_user_meta($user_id, 'billing_apartment_number', $formFields['shipping_apartment']);
+  if (isset($formFields['shipping_first_name'])) {
+    update_user_meta($user_id, 'billing_first_name', sanitize_text_field($formFields['shipping_first_name']));
+  }
+  if (isset($formFields['shipping_last_name'])) {
+    update_user_meta($user_id, 'billing_last_name', sanitize_text_field($formFields['shipping_last_name']));
+  }
+  if (isset($formFields['shipping_company'])) {
+    update_user_meta($user_id, 'billing_company', sanitize_text_field($formFields['shipping_company']));
+  }
+  if (isset($formFields['shipping_street'])) {
+    update_user_meta($user_id, 'billing_address_1', sanitize_text_field($formFields['shipping_street']));
+  }
+  if (isset($formFields['shipping_city'])) {
+    update_user_meta($user_id, 'billing_city', sanitize_text_field($formFields['shipping_city']));
+  }
+  if (isset($formFields['shipping_postal'])) {
+    update_user_meta($user_id, 'billing_postcode', sanitize_text_field($formFields['shipping_postal']));
+  }
+  if (isset($formFields['email'])) {
+    update_user_meta($user_id, 'billing_country', sanitize_text_field($formFields['email']));
+  }
+  if (isset($formFields['shipping_phone'])) {
+    update_user_meta($user_id, 'billing_phone', sanitize_text_field($formFields['shipping_phone']));
+  }
+  if (isset($formFields['shipping_email'])) {
+    update_user_meta($user_id, 'billing_email', sanitize_email($formFields['shipping_email']));
+  }
+  if (isset($formFields['shipping_address_type'])) {
+    update_user_meta($user_id, 'billing_address_type', sanitize_text_field($formFields['shipping_address_type']));
+  }
+  if (isset($formFields['shipping_house_number'])) {
+    update_user_meta($user_id, 'billing_house_number', sanitize_text_field($formFields['shipping_house_number']));
+  }
+  if (isset($formFields['shipping_apartment'])) {
+    update_user_meta($user_id, 'billing_apartment_number', sanitize_text_field($formFields['shipping_apartment']));
+  }
 }
 
 // Save Shipping fields
 function save_shipping_fields($user_id, $formFields)
 {
-  update_user_meta($user_id, 'shipping_first_name', $formFields['shipping_first_name']);
-  update_user_meta($user_id, 'shipping_last_name', $formFields['shipping_last_name']);
-  update_user_meta($user_id, 'shipping_company', $formFields['shipping_company']);
-  update_user_meta($user_id, 'shipping_address_1', $formFields['shipping_street']);
-  update_user_meta($user_id, 'shipping_city', $formFields['shipping_city']);
-  update_user_meta($user_id, 'shipping_postcode', $formFields['shipping_postal']);
-  update_user_meta($user_id, 'shipping_country', $formFields['email']);
-  update_user_meta($user_id, 'shipping_phone', $formFields['shipping_phone']);
-  update_user_meta($user_id, 'shipping_email', $formFields['shipping_email']);
-  update_user_meta($user_id, 'shipping_address_type', $formFields['shipping_address_type']);
-  update_user_meta($user_id, 'shipping_house_number', $formFields['shipping_house_number']);
-  update_user_meta($user_id, 'shipping_apartment_number', $formFields['shipping_apartment']);
+  if (isset($formFields['shipping_first_name'])) {
+    update_user_meta($user_id, 'shipping_first_name', sanitize_text_field($formFields['shipping_first_name']));
+  }
+  if (isset($formFields['shipping_last_name'])) {
+    update_user_meta($user_id, 'shipping_last_name', sanitize_text_field($formFields['shipping_last_name']));
+  }
+  if (isset($formFields['shipping_company'])) {
+    update_user_meta($user_id, 'shipping_company', sanitize_text_field($formFields['shipping_company']));
+  }
+  if (isset($formFields['shipping_street'])) {
+    update_user_meta($user_id, 'shipping_address_1', sanitize_text_field($formFields['shipping_street']));
+  }
+  if (isset($formFields['shipping_city'])) {
+    update_user_meta($user_id, 'shipping_city', sanitize_text_field($formFields['shipping_city']));
+  }
+  if (isset($formFields['shipping_postal'])) {
+    update_user_meta($user_id, 'shipping_postcode', sanitize_text_field($formFields['shipping_postal']));
+  }
+  if (isset($formFields['email'])) {
+    update_user_meta($user_id, 'shipping_country', sanitize_text_field($formFields['email']));
+  }
+  if (isset($formFields['shipping_phone'])) {
+    update_user_meta($user_id, 'shipping_phone', sanitize_text_field($formFields['shipping_phone']));
+  }
+  if (isset($formFields['shipping_email'])) {
+    update_user_meta($user_id, 'shipping_email', sanitize_email($formFields['shipping_email']));
+  }
+  if (isset($formFields['shipping_address_type'])) {
+    update_user_meta($user_id, 'shipping_address_type', sanitize_text_field($formFields['shipping_address_type']));
+  }
+  if (isset($formFields['shipping_house_number'])) {
+    update_user_meta($user_id, 'shipping_house_number', sanitize_text_field($formFields['shipping_house_number']));
+  }
+  if (isset($formFields['shipping_apartment'])) {
+    update_user_meta($user_id, 'shipping_apartment_number', sanitize_text_field($formFields['shipping_apartment']));
+  }
 }
 
 // Save Shipping form
 function save_shipping_user_profile()
 {
-  if (isset($_POST['formData'])) {
-    parse_str($_POST['formData'], $formFields);
+  // Check if form data exists
+  if (!isset($_POST['formData']) || empty($_POST['formData'])) {
+    wp_send_json_error(['message' => __('Form data missing', 'geffen')]);
+    wp_die();
+  }
 
-    // Get the current user ID
-    $user_id = get_current_user_id();
+  // Parse form data
+  parse_str($_POST['formData'], $formFields);
 
-    // Update user meta with the form data
-    if ($user_id) {
-      // Save shipping fields
-      save_shipping_fields($user_id, $formFields);
+  // Get the current user ID
+  $user_id = get_current_user_id();
 
-      // Save billing user profile if meta is empty
-      save_billing_fields($user_id, $formFields);
+  // Check if user is logged in
+  if (!$user_id) {
+    wp_send_json_error(['message' => __('User not found. Please login', 'geffen')]);
+    wp_die();
+  }
 
-      // Variables
-      $coupon_codes = $_POST['coupons'];
-      $shipping_method = $_POST['shipping_method'];
+  // Validate required fields
+  $required_fields = [
+    'shipping_first_name',
+    'shipping_last_name',
+    'shipping_phone',
+    'shipping_email',
+    'shipping_city',
+    'shipping_street',
+    'shipping_house_number',
+    'shipping_apartment',
+    'shipping_address_type'
+  ];
 
-      // Add Coupons
-      if (isset($coupon_codes)) {
-        add_multiple_coupons($coupon_codes);
-      }
-
-      // Update the chosen shipping method
-      WC()->session->set('chosen_shipping_methods', array($shipping_method));
-      WC()->cart->calculate_shipping();
-
-      // Update total
-      WC()->cart->calculate_totals();
-
-      $review_order = get_part_string('template-parts/checkout-one-page/review-order');
-
-      // Return success message or data
-      wp_send_json([
-        'name' => $formFields['shipping_first_name'] . ' ' . $formFields['shipping_last_name'],
-        'city' => $formFields['shipping_city'],
-        'address' => $formFields['shipping_street'],
-        'review_order' => $review_order,
-      ]);
-    } else {
-      // Return error message if user ID is not found
-      wp_send_json_error('User ID not found.');
+  $missing_fields = [];
+  foreach ($required_fields as $field) {
+    if (empty($formFields[$field])) {
+      $missing_fields[] = $field;
     }
   }
 
-  // Return error if form data is missing
-  wp_send_json_error('Form data is missing.');
-  wp_die();
+  if (!empty($missing_fields)) {
+    wp_send_json_error(['message' => __('Please fill in all required fields', 'geffen')]);
+    wp_die();
+  }
+
+  try {
+    // Save shipping fields
+    save_shipping_fields($user_id, $formFields);
+
+    // Save billing user profile if meta is empty
+    save_billing_fields($user_id, $formFields);
+
+    // Handle WooCommerce cart operations only if WooCommerce is available and cart exists
+    if (function_exists('WC') && WC()->cart && !WC()->cart->is_empty()) {
+      // Handle coupons if provided
+      $coupon_codes = isset($_POST['coupons']) && !empty($_POST['coupons']) ? sanitize_text_field($_POST['coupons']) : '';
+      if (!empty($coupon_codes)) {
+        // Check if add_multiple_coupons function exists
+        if (function_exists('add_multiple_coupons')) {
+          add_multiple_coupons($coupon_codes);
+        }
+      }
+
+      // Update shipping method if provided and WooCommerce session is available
+      $shipping_method = isset($_POST['shipping_method']) && !empty($_POST['shipping_method']) ? sanitize_text_field($_POST['shipping_method']) : '';
+      if (!empty($shipping_method) && WC()->session) {
+        WC()->session->set('chosen_shipping_methods', array($shipping_method));
+        WC()->cart->calculate_shipping();
+      }
+
+      // Update total
+      WC()->cart->calculate_totals();
+    }
+
+    // Get review order HTML if function exists and we're on checkout page
+    $review_order = '';
+    if (function_exists('get_part_string')) {
+      $review_order = get_part_string('template-parts/checkout-one-page/review-order');
+    }
+
+    // Prepare response data
+    $response_data = [
+      'name' => isset($formFields['shipping_first_name']) && isset($formFields['shipping_last_name'])
+        ? sanitize_text_field($formFields['shipping_first_name']) . ' ' . sanitize_text_field($formFields['shipping_last_name'])
+        : '',
+      'city' => isset($formFields['shipping_city']) ? sanitize_text_field($formFields['shipping_city']) : '',
+      'address' => isset($formFields['shipping_street']) ? sanitize_text_field($formFields['shipping_street']) : '',
+    ];
+
+    if (!empty($review_order)) {
+      $response_data['review_order'] = $review_order;
+    }
+
+    wp_send_json_success($response_data);
+    wp_die();
+
+  } catch (Exception $e) {
+    wp_send_json_error(['message' => __('An error occurred while saving data: ', 'geffen') . $e->getMessage()]);
+    wp_die();
+  }
 }
 add_action('wp_ajax_save_shipping_user_profile', 'save_shipping_user_profile');
 add_action('wp_ajax_nopriv_save_shipping_user_profile', 'save_shipping_user_profile');

@@ -13,6 +13,44 @@ function redirect_cart_to_checkout()
 }
 add_action('template_redirect', 'redirect_cart_to_checkout');
 
+/**
+ * Ensure shipping methods are initialized on checkout page load
+ */
+function ensure_shipping_methods_on_checkout() {
+  if (!is_checkout() || !WC()->cart || WC()->cart->is_empty()) {
+    return;
+  }
+
+  // Only proceed if shipping is needed
+  if (!WC()->cart->needs_shipping()) {
+    return;
+  }
+
+  // Calculate shipping if not already calculated
+  $packages = WC()->cart->get_shipping_packages();
+  if (empty($packages)) {
+    WC()->cart->calculate_shipping();
+    $packages = WC()->cart->get_shipping_packages();
+  }
+
+  // Set default shipping method if none is chosen
+  $chosen_methods = WC()->session->get('chosen_shipping_methods');
+  if (empty($chosen_methods) && !empty($packages)) {
+    $shipping_packages = WC()->shipping()->get_packages();
+    if (!empty($shipping_packages) && isset($shipping_packages[0]['rates'])) {
+      $available_methods = $shipping_packages[0]['rates'];
+      if (!empty($available_methods)) {
+        // Get the first available method
+        $first_method = reset($available_methods);
+        WC()->session->set('chosen_shipping_methods', array($first_method->id));
+        WC()->cart->calculate_shipping();
+        WC()->cart->calculate_totals();
+      }
+    }
+  }
+}
+add_action('wp', 'ensure_shipping_methods_on_checkout', 20);
+
 // Remove from checkout
 
 function remove_from_cart_callback()
@@ -345,6 +383,69 @@ function geffen_create_order() {
   // Convert URL-encoded string to PHP array
   parse_str($form, $data);
 
+  // Verify nonce
+  if ( ! isset( $data['woocommerce-cart-nonce'] ) || ! wp_verify_nonce( $data['woocommerce-cart-nonce'], 'woocommerce-cart' ) ) {
+    // Nonce is invalid, handle the error here
+    wp_send_json_error( ['message' => 'Invalid nonce'] );
+    wp_die();
+  }
+
+  // Get shipping method - try form data first, then session
+  $shipping_method_id = '';
+  if (isset($data['shipping_method'][0]) && !empty($data['shipping_method'][0])) {
+    $shipping_method_id = $data['shipping_method'][0];
+  } else {
+    // Fallback to session
+    $chosen_methods = WC()->session->get('chosen_shipping_methods');
+    if (!empty($chosen_methods) && isset($chosen_methods[0])) {
+      $shipping_method_id = $chosen_methods[0];
+      $data['shipping_method'][0] = $shipping_method_id;
+    }
+  }
+
+  // Validate shipping method exists
+  if (empty($shipping_method_id)) {
+    wp_send_json_error( ['message' => __('שיטת משלוח לא נבחרה. אנא בחרו שיטת משלוח', 'geffen')] );
+    wp_die();
+  }
+
+  // Get shipping method title and price - try form data first, then calculate from method
+  $shipping_method_title = '';
+  $shipping_method_price = 0;
+
+  if (isset($data['shipping_method_title']) && !empty($data['shipping_method_title'])) {
+    $shipping_method_title = $data['shipping_method_title'];
+  }
+
+  if (isset($data['shipping_method_price']) && !empty($data['shipping_method_price'])) {
+    $shipping_method_price = floatval($data['shipping_method_price']);
+  }
+
+  // If title or price missing, get from shipping rates
+  if (empty($shipping_method_title) || $shipping_method_price == 0) {
+    $shipping_packages = WC()->shipping()->get_packages();
+    if (!empty($shipping_packages) && isset($shipping_packages[0]['rates'])) {
+      $available_methods = $shipping_packages[0]['rates'];
+      foreach ($available_methods as $method) {
+        if ($method->id === $shipping_method_id) {
+          if (empty($shipping_method_title)) {
+            $shipping_method_title = $method->get_label();
+          }
+          if ($shipping_method_price == 0) {
+            $shipping_method_price = floatval($method->get_cost());
+          }
+          break;
+        }
+      }
+    }
+  }
+
+  // Final validation - ensure we have all required shipping data
+  if (empty($shipping_method_title)) {
+    wp_send_json_error( ['message' => __('לא ניתן לקבוע את פרטי שיטת המשלוח. אנא רעננו את הדף', 'geffen')] );
+    wp_die();
+  }
+
   if ($data['shipping_method'][0] == 'flat_rate:4') {
     $is_empty = check_mandatory_fields($data);
 
@@ -353,13 +454,6 @@ function geffen_create_order() {
       wp_send_json_error( ['message' => __('אנא מלאו את כל שדות החובה', 'geffen'), 'fields' => $data] );
       wp_die();
     }
-  }
-
-  // Verify nonce
-  if ( ! isset( $data['woocommerce-cart-nonce'] ) || ! wp_verify_nonce( $data['woocommerce-cart-nonce'], 'woocommerce-cart' ) ) {
-    // Nonce is invalid, handle the error here
-    wp_send_json_error( ['message' => 'Invalid nonce'] );
-    wp_die();
   }
 
   // Save Subscription
@@ -390,9 +484,9 @@ function geffen_create_order() {
 
   // create shipping object
   $shipping = new WC_Order_Item_Shipping();
-  $shipping->set_method_title( $data['shipping_method_title'] );
-  $shipping->set_method_id( $data['shipping_method'][0] ); // set an existing Shipping method ID
-  $shipping->set_total( $data['shipping_method_price'] ); // optional
+  $shipping->set_method_title( $shipping_method_title );
+  $shipping->set_method_id( $shipping_method_id ); // set an existing Shipping method ID
+  $shipping->set_total( $shipping_method_price ); // optional
 
   // Create New Order
   $order = wc_create_order();
