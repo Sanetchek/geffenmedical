@@ -211,8 +211,9 @@
 
     // Get the 'geffen_phone' meta value for the user
     $geffen_phone = get_user_meta($user_id, 'geffen_phone', true);
+    $geffen_privacy_policy = get_user_meta($user_id, 'geffen_privacy_policy', true);
 
-    if ($user_info && !$is_user_email) : ?>
+    if ($user_info && !$is_user_email || !$geffen_privacy_policy) : ?>
       <div id="continue_registration_popup" class="popup-contactpage">
         <div class="popup-content-contactpage logip-page-formcontent registratet-popup-forms">
           <span class="close-contactpage" id="online_form_form">×</span>
