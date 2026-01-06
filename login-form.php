@@ -6,6 +6,7 @@
     <div id="login_form_messages"></div>
 
     <div id="popup_login_form">
+      User is not logged in
       <h2 class="login-form-title"><?= __('התחברות/הרשמה', 'geffen') ?></h2>
 
       <div class="container tabs">
@@ -200,20 +201,21 @@
   </form>
 </div>
 </div>
-<?php elseif (is_user_logged_in()) : ?>
+<?php else : ?>
   <?php
   $user_id = get_current_user_id();
 
   if ($user_id) :
     // Get user data
     $user_info = get_userdata($user_id);
-    $is_user_email = $user_info ? $user_info->user_email : '';
+    $has_email = !empty($user_info->user_email);
 
     // Get the 'geffen_phone' meta value for the user
     $geffen_phone = get_user_meta($user_id, 'geffen_phone', true);
-    $geffen_privacy_policy = get_user_meta($user_id, 'geffen_privacy_policy', true);
+    $has_privacy_policy = get_user_meta($user_id, 'geffen_privacy_policy', true) === '1';
 
-    if ($user_info && !$is_user_email || !$geffen_privacy_policy) : ?>
+    // Show form if user exists and (email is missing OR privacy policy is not confirmed)
+    if ($user_info && (!$has_email || !$has_privacy_policy)) : ?>
       <div id="continue_registration_popup" class="popup-contactpage">
         <div class="popup-content-contactpage logip-page-formcontent registratet-popup-forms">
           <span class="close-contactpage" id="online_form_form">×</span>

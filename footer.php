@@ -78,6 +78,7 @@
 
 <?php //get_template_part('template-parts/site', 'rating') ?>
 <?php get_template_part('template-parts/adv', 'popup') ?>
+<?php get_template_part('login-form') ?>
 <?php wp_footer(); ?>
 
 </body>

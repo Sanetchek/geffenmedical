@@ -69,8 +69,6 @@
 
 			<?php get_template_part('template-parts/header/burger-menu') ?>
 
-			<?php get_template_part('login-form') ?>
-
 			<div class="page-overlay"></div>
 
 			<div class="lds-ring">
