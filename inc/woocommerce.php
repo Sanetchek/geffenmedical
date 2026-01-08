@@ -1132,3 +1132,75 @@ function geffen_update_max_quantity_fragments($fragments)
 
   return $fragments;
 }
+
+/**
+ * Change admin email recipient based on user_crm_id
+ *
+ * If user has user_crm_id, send to one email
+ * If user doesn't have user_crm_id, send to another email
+ *
+ * @param string $recipient Email recipient
+ * @param WC_Order $order Order object
+ * @return string Modified email recipient
+ */
+function geffen_customize_admin_new_order_email_recipient($recipient, $order)
+{
+  // Get user ID from order
+  $user_id = $order->get_customer_id();
+
+  if (!$user_id) {
+    // If no user ID, return default recipient
+    return $recipient;
+  }
+
+  // Get user_crm_id from user meta
+  $user_crm_id = get_user_meta($user_id, 'user_crm_id', true);
+
+  // Define email addresses
+  $email_with_crm_id = 'webshops@geffenmedical.com';      // Email for users WITH user_crm_id
+  $email_without_crm_id = 'tiful-gm@geffenmedical.com'; // Email for users WITHOUT user_crm_id
+
+  // Check if user has user_crm_id
+  if (!empty($user_crm_id)) {
+    // User has user_crm_id - send to first email
+    return $email_with_crm_id;
+  } else {
+    // User doesn't have user_crm_id - send to second email
+    return $email_without_crm_id;
+  }
+}
+add_filter('woocommerce_email_recipient_admin_new_order', 'geffen_customize_admin_new_order_email_recipient', 10, 2);
+
+/**
+ * Change admin new order email subject if user doesn't have user_crm_id
+ *
+ * If user doesn't have user_crm_id, change subject to: אישור הזמנה - לקוח כפול [ORDER_NUMBER]#
+ *
+ * @param string $subject Email subject
+ * @param WC_Order $order Order object
+ * @return string Modified email subject
+ */
+function geffen_customize_admin_new_order_email_subject($subject, $order)
+{
+  // Get user ID from order
+  $user_id = $order->get_customer_id();
+
+  if (!$user_id) {
+    // If no user ID, return default subject
+    return $subject;
+  }
+
+  // Get user_crm_id from user meta
+  $user_crm_id = get_user_meta($user_id, 'user_crm_id', true);
+
+  // Check if user doesn't have user_crm_id
+  if (empty($user_crm_id)) {
+    // User doesn't have user_crm_id - change subject
+    $order_number = $order->get_order_number();
+    return sprintf('אישור הזמנה - לקוח כפול %s#', $order_number);
+  }
+
+  // User has user_crm_id - return default subject
+  return $subject;
+}
+add_filter('woocommerce_email_subject_new_order', 'geffen_customize_admin_new_order_email_subject', 10, 2);
