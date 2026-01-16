@@ -28,7 +28,21 @@ get_header();
             <h1 class="h1"><?= get_field('title') ?></h1>
             <div class="banner-text">
               <p><?= get_field('subtitle_main') ?></p>
+              <div class="button-omnipod-block" style="justify-content: flex-start;">
+                <!--  <a href="<?= get_field('url_button_text_main') ?>" class="button-omnipod" role="button"><?= get_field('button_text_main') ?></a>-->
 
+                <?php
+$link = get_field('url_button_text_main');
+?>
+
+<?php if ($link && !empty($link['url'])): ?>
+  <a href="<?= esc_attr($link['url']) ?>"
+     class="button-omnipod"
+     role="button">
+     <?= esc_html(get_field('button_text_main')) ?>
+  </a>
+<?php endif; ?>
+                </div>
               <!--<p>Omnipod היא מערכת למתן אינסולין ללא צינורית, המיועדת לאנשים עם סוכרת מסוג 1.</p>
 
               <p>מערכות Omnipod ו-Omnipod DASH® מספקות אינסולין דרך משאבת מדבקה הניתנת לענידה על הגוף, ללא צינורית
@@ -54,10 +68,23 @@ get_header();
         <div class="row">
           <div class="col-lg-12 col-sm-12">
             <div class="block-layout-builder pod-therapy-content wb-75">
+            <div class="text-body">
+               <div class="row">
+                  <div class="col-lg-6 col-sm-12">
+                  <h2 class="omnipod-h2"><?= get_field('block2_ttitle_column1') ?></h2>
+                  <p><?= get_field('block2_text_column1') ?></p>
+                  </div>
+                  <div class="col-lg-6 col-sm-12">
+                  <h2 class="omnipod-h2"><?= get_field('block2_ttitle_column2') ?></h2>
+                  <p><?= get_field('block2_text_column2') ?></p>
+                  </div>
+                </div>
+              </div>
               <h2 class="omnipod-h2"><?= get_field('block1_ttitle_column2') ?></h2>
               <div class="text-body">
                 <p><?= get_field('block1_text_column2') ?></p>
               </div>
+
               <div class="tab-schortcode forme-simple-pod-page2"  id="tab-schortcode-form" style="width: 100%;"><?= get_field('shortcode_form') ?></div>
             </div>
           </div>

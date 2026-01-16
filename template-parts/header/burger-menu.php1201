@@ -49,10 +49,9 @@
     }
   }
 
-  // Аккордеон для подменю в гамбургер-меню
+  // Аккордеон для подменю в гамбургер-меню (для экранов <= 900px)
+  // Адаптировано из script.js с функцией closeSubTree
   (function() {
-    let isInitialized = false;
-    
     function closeSubTree(items) {
       // Закрываем все подменю, включая вложенные
       items.forEach(function(item) {
@@ -65,111 +64,72 @@
       });
     }
     
-    function handleSubmenuClick(e, menuItem) {
-      // Ищем прямое дочернее подменю
-      const submenu = Array.from(menuItem.children).find(function(child) {
-        return child.tagName === 'UL' && child.classList.contains('sub-menu');
-      });
-      
-      if (!submenu) {
+    function initSubmenuToggle() {
+      // Проверяем, что мы на экране <= 900px
+      if (window.innerWidth > 900) {
         return;
       }
       
-      e.preventDefault();
-      e.stopPropagation();
-      
-      // Проверяем текущее состояние
-      const isOpen = menuItem.classList.contains('submenu-open');
-      
-      // Закрываем все другие подменю на том же уровне
-      const siblings = Array.from(menuItem.parentElement.children);
-      const otherItems = Array.from(siblings).filter(function(sibling) {
-        return sibling !== menuItem && sibling.classList.contains('menu-item-has-children');
-      });
-      closeSubTree(otherItems);
-      
-      // Переключаем текущее подменю
-      if (isOpen) {
-        // Закрываем подменю и все вложенные
-        closeSubTree([menuItem]);
-      } else {
-        // Открываем текущее подменю
-        menuItem.classList.add('submenu-open');
-      }
-    }
-    
-    // Используем делегирование событий для более надежной работы
-    function initSubmenuToggle() {
       const primaryMenu = document.getElementById('primary-menu');
       if (!primaryMenu) return;
       
-      // Если уже инициализировано, не добавляем обработчик повторно
-      if (isInitialized) return;
+      // Получаем все пункты меню первого уровня с подменю
+      const menuItems = primaryMenu.querySelectorAll('> li.menu-item-has-children');
       
-      // Добавляем обработчик через делегирование событий
-      primaryMenu.addEventListener('click', function(e) {
-        // Проверяем, что клик был по ссылке
-        const link = e.target.closest('a');
+      menuItems.forEach(function(menuItem) {
+        const link = menuItem.querySelector('> a');
         if (!link) return;
         
-        // Проверяем, что ссылка находится внутри пункта меню с подменю
-        const menuItem = link.closest('li.menu-item-has-children');
-        if (!menuItem) return;
+        // Удаляем старый обработчик
+        const newLink = link.cloneNode(true);
+        link.parentNode.replaceChild(newLink, link);
         
-        // Проверяем, что ссылка является прямым дочерним элементом пункта меню
-        if (link.parentElement !== menuItem) return;
-        
-        handleSubmenuClick(e, menuItem);
+        // Добавляем новый обработчик
+        newLink.addEventListener('click', function(e) {
+          const submenu = menuItem.querySelector('> ul.sub-menu');
+          
+          if (!submenu) {
+            return;
+          }
+          
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          
+          // Проверяем текущее состояние
+          const isOpen = menuItem.classList.contains('submenu-open');
+          
+          // Закрываем все другие подменю на том же уровне
+          const siblings = Array.from(menuItem.parentElement.children);
+          const otherItems = Array.from(siblings).filter(function(sibling) {
+            return sibling !== menuItem && sibling.classList.contains('menu-item-has-children');
+          });
+          closeSubTree(otherItems);
+          
+          // Переключаем текущее подменю
+          if (isOpen) {
+            // Закрываем подменю и все вложенные
+            closeSubTree([menuItem]);
+          } else {
+            // Открываем текущее подменю
+            menuItem.classList.add('submenu-open');
+          }
+        });
       });
-      
-      isInitialized = true;
     }
     
     // Инициализация при загрузке DOM
-    function init() {
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initSubmenuToggle);
-      } else {
-        initSubmenuToggle();
-      }
-    }
-    
-    init();
-    
-    // Переинициализация после открытия меню
-    // Используем MutationObserver для отслеживания изменений класса меню
-    function setupMenuObserver() {
-      const primaryMenu = document.getElementById('primary-menu');
-      if (primaryMenu && !primaryMenu.dataset.observerSetup) {
-        primaryMenu.dataset.observerSetup = 'true';
-        
-        const observer = new MutationObserver(function(mutations) {
-          mutations.forEach(function(mutation) {
-            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-              const target = mutation.target;
-              if (target.classList.contains('show')) {
-                // Меню открыто, убеждаемся что обработчики инициализированы
-                if (!isInitialized) {
-                  initSubmenuToggle();
-                }
-              }
-            }
-          });
-        });
-        
-        observer.observe(primaryMenu, {
-          attributes: true,
-          attributeFilter: ['class']
-        });
-      }
-    }
-    
-    // Настраиваем observer после загрузки DOM
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', setupMenuObserver);
+      document.addEventListener('DOMContentLoaded', initSubmenuToggle);
     } else {
-      setupMenuObserver();
+      initSubmenuToggle();
     }
+    
+    // Переинициализация при изменении размера окна
+    let resizeTimer;
+    window.addEventListener('resize', function() {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(initSubmenuToggle, 250);
+    });
   })();
 
   // Добавляем класс на body для страниц с двумя логотипами и добавляем утилиты в меню

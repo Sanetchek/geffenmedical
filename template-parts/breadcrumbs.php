@@ -1,4 +1,4 @@
-<?php $is_post = (is_single() && 'freestyle_libre' != get_post_type() && 'omnipod' != get_post_type()); ?>
+<?php $is_post = (is_single() && 'freestyle_libre' != get_post_type() && 'omnipod' != get_post_type() && 'omnipod5' != get_post_type()); ?>
 
 <div class="breadcrumbs" itemscope="" itemtype="http://schema.org/BreadcrumbList">
   <span class="breadcrumbs__parent" itemprop="itemListElement" itemscope="" itemtype="http://schema.org/ListItem">

@@ -260,31 +260,6 @@ function add_post_types() {
     'show_in_menu' => 'edit.php?post_type=page',
     'supports' => array('title', 'editor', 'thumbnail', 'page-attributes'),
   ]);
-
-  /**
-   * Omnipod5 CPT
-   */
-  register_post_type('omnipod5', [
-    'labels' => [
-      'name' => _x('Omnipod5', 'geffen'),
-    ],
-    'public' => true,
-    'has_archive' => false,
-    'show_in_rest' => true,
-    'hierarchical' => false,
-    'show_ui' => true,
-    'show_in_nav_menus' => true,
-    'show_in_admin_bar' => true,
-    'can_export' => true,
-    'exclude_from_search' => false,
-    'publicly_queryable' => true,
-    'show_in_menu' => 'edit.php?post_type=page',
-    'supports' => array('title', 'editor', 'thumbnail', 'page-attributes'),
-    'rewrite' => array(
-      'slug' => 'omnipod5',
-      'with_front' => false
-    ),
-  ]);
 }
 add_action('init', 'add_post_types');
 

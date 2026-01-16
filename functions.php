@@ -294,8 +294,7 @@ function geffen_scripts()
      wp_enqueue_style('videopopup', get_template_directory_uri() . '/assets/videotube/videotube.min.css', array(), _S_VERSION);
 
 	// scripts
-	wp_deregister_script('jquery');
-	wp_register_script('jquery', 'https://code.jquery.com/jquery-3.7.1.min.js', false, null, true);
+	wp_enqueue_script('jquery-cdn', 'https://code.jquery.com/jquery-3.7.1.min.js');
 	wp_enqueue_script('jquery');
 	wp_enqueue_script('jquery-core');
 	wp_enqueue_script('jquery-migrate');
@@ -326,8 +325,7 @@ function geffen_scripts()
 		'site_url' => get_home_url(),
 		'theme_url' => get_template_directory_uri(),
 		'security' => wp_create_nonce('ajax-nonce'),
-		'update_shipping_method_nonce' => wp_create_nonce('update_shipping_method'),
-		'registration_nonce' => wp_create_nonce('geffen_registration'),
+		'update_shipping_method_nonce' => wp_create_nonce('update_shipping_method')
 	]);
 
 	wp_dequeue_style('wp-block-library');
@@ -335,11 +333,51 @@ function geffen_scripts()
 }
 add_action('wp_enqueue_scripts', 'geffen_scripts');
 
-add_filter( 'script_loader_tag', function( $tag ) {
-    $tag = preg_replace( '/\sintegrity="[^"]+"/', '', $tag );
-    $tag = preg_replace( '/\scrossorigin="[^"]+"/', '', $tag );
-    return $tag;
-}, 1 );
+/**
+ * Add attributes to SCRIPT link
+ *
+ * @param [type] $tag
+ * @param [type] $handle
+ * @param [type] $src
+ * @return string
+ */
+function add_attribs_to_scripts($tag, $handle, $src)
+{
+
+	// The handles of the enqueued scripts we want to defer
+	$async_scripts = array(
+		'jquery-migrate',
+		'sharethis',
+	);
+
+	$defer_scripts = array(
+		'contact-form-7',
+		'jquery-form',
+		'wpdm-bootstrap',
+		'frontjs',
+		'jquery-choosen',
+		'fancybox',
+		'jquery-colorbox',
+		'search'
+	);
+
+	$jquery = array(
+		'jquery'
+	);
+
+	if (in_array($handle, $defer_scripts)) {
+		return '<script src="' . $src . '" defer="defer" type="text/javascript"></script>' . "\n";
+	}
+	if (in_array($handle, $async_scripts)) {
+		return '<script src="' . $src . '" async="async" type="text/javascript"></script>' . "\n";
+	}
+	if (in_array($handle, $jquery)) {
+		return '<script src="' . $src . '" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous" type="text/javascript"></script>' . "\n";
+	}
+
+	return $tag;
+}
+add_filter('script_loader_tag', 'add_attribs_to_scripts', 10, 3);
 
 function custom_redirect_non_admin_users_registration()
 {
@@ -403,6 +441,29 @@ require get_template_directory() . '/inc/customizer.php';
  * CPT.
  */
 require get_template_directory() . '/inc/cpt.php';
+
+/**
+ * Load custom page templates for custom post types
+ */
+add_filter('single_template', function($template) {
+	global $post;
+	
+	// Check if this is a custom post type that supports page templates
+	if ($post && get_post_type($post) === 'omnipod5') {
+		// Get the page template assigned to this post
+		$page_template = get_post_meta($post->ID, '_wp_page_template', true);
+		
+		// If a custom template is assigned, use it
+		if ($page_template && $page_template != 'default') {
+			$template_path = locate_template($page_template);
+			if ($template_path) {
+				return $template_path;
+			}
+		}
+	}
+	
+	return $template;
+});
 
 /**
  * Woocommerce.

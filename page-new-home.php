@@ -1,20 +1,16 @@
 <?php
 /**
- * The front-page template file
+ * Template Name: New Home
  *
- * Главная страница сайта с новым дизайном New Home
- *
- * @link https://developer.wordpress.org/themes/basics/template-hierarchy/
- *
- * @package geffen
+ * Копия главной страницы со всеми компонентами.
  */
 
 get_header();
 ?>
 
 <div class="main-page new-home-page">
-  <!-- Main 
-  <?php get_template_part('template-parts/home/main') ?>-->
+  <!-- Main -->
+  <?php get_template_part('template-parts/home/main') ?>
   <!-- New Home Content -->
   <div class="new-home-content">
     <div class="home-product-info-fl-sensor">
@@ -28,7 +24,7 @@ get_header();
     <div class="new-home-librelink">
       <div class="container">
          <div class="row libre2-system mobile-mb-0  new-home-bg-block">
-        <div class="col-md-6 col-12 download-libre3-app">
+        <div class="col-sm-6 col-12 download-libre3-app">
           <div class="new-home-librelink-content">
             <h2><?= get_field('block-app-title') ?></h2>
             <p style="text-align: right;font-size:18px;font-weight: bold;"><?= get_field('block-app-text') ?></p>
@@ -51,7 +47,7 @@ get_header();
           </p>
 
         </div>
-        <div class="col-md-6 col-12">
+        <div class="col-sm-6 col-12">
           <div class="new-home-fl-phone-image">
               <div class="new-home-fl-phone">
                 <?php $app_phone_img = get_field('image-app-phone'); ?>

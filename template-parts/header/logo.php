@@ -1,14 +1,77 @@
 <div class="site-branding">
   <?php
+    // Проверяем, находимся ли мы на страницах freestyle-libre или omnipod
+    $current_url = $_SERVER['REQUEST_URI'];
+    $is_freestyle_libre = (
+      get_post_type() === 'freestyle_libre' || 
+      is_page('freestyle-libre') || 
+      strpos($current_url, '/freestyle-libre') !== false ||
+      (function_exists('is_singular') && is_singular('freestyle_libre'))
+    );
+    
+    $is_omnipod = (
+      get_post_type() === 'omnipod' || 
+      get_post_type() === 'omnipod5' ||
+      is_page('omnipod') || 
+      strpos($current_url, '/omnipod') !== false ||
+      (function_exists('is_singular') && (is_singular('omnipod') || is_singular('omnipod5')))
+    );
+    
     if (!wp_is_mobile()):
-    echo theme_logo();
+      if ($is_freestyle_libre):
+        // Для страниц freestyle-libre показываем два логотипа
+        ?>
+        <div class="freestyle-libre-logos">
+          <a href="/" class="site-logo-link" rel="home" aria-current="page">
+            <img src="https://geffenmedical.co.il/wp-content/uploads/2025/12/small-new-logo.svg" class="site-logo" alt="GeffenMedikal" decoding="async">
+          </a>
+          <a href="/freestyle-libre" class="libre-logo-link">
+            <img src="https://geffenmedical.co.il/wp-content/uploads/2025/12/new-lb-logo.svg" class="libre-logo" alt="FreeStyle Libre" decoding="async">
+          </a>
+        </div>
+        <?php
+      elseif ($is_omnipod):
+        // Для страниц omnipod показываем два логотипа
+        ?>
+        <div class="omnipod-logos">
+          <a href="/" class="site-logo-link" rel="home" aria-current="page">
+            <img src="https://geffenmedical.co.il/wp-content/uploads/2025/12/small-new-logo.svg" class="site-logo" alt="GeffenMedikal" decoding="async">
+          </a>
+          <a href="/omnipod" class="omnipod-logo-link">
+            <img src="https://geffenmedical.co.il/wp-content/uploads/2025/12/omnipod-new-logo.svg" class="omnipod-logo" alt="Omnipod" decoding="async">
+          </a>
+        </div>
+        <?php
+      else:
+        echo theme_logo();
+      endif;
     else:
     ?>
-      <div class="col-2 col-md-3">
+      <div class="col-12 col-md-3">
         <div class="site-branding">
-          <a href="/" class="site-logo-link" rel="home" aria-current="page">
-            <img src="<?= get_site_url() ?>/wp-content/uploads/2024/07/logo.png" class="site-logo" alt="GeffenMedikal" decoding="async">
-          </a>        
+          <?php if ($is_freestyle_libre): ?>
+            <div class="freestyle-libre-logos">
+              <a href="/" class="site-logo-link" rel="home" aria-current="page">
+                <img src="https://geffenmedical.co.il/wp-content/uploads/2025/12/small-new-logo.svg" class="site-logo" alt="GeffenMedikal" decoding="async">
+              </a>
+              <a href="/freestyle-libre" class="libre-logo-link">
+                <img src="https://geffenmedical.co.il/wp-content/uploads/2025/12/new-lb-logo.svg" class="libre-logo" alt="FreeStyle Libre" decoding="async">
+              </a>
+            </div>
+          <?php elseif ($is_omnipod): ?>
+            <div class="omnipod-logos">
+              <a href="/" class="site-logo-link" rel="home" aria-current="page">
+                <img src="https://geffenmedical.co.il/wp-content/uploads/2025/12/small-new-logo.svg" class="site-logo" alt="GeffenMedikal" decoding="async">
+              </a>
+              <a href="/omnipod" class="omnipod-logo-link">
+                <img src="https://geffenmedical.co.il/wp-content/uploads/2025/12/omnipod-new-logo.svg" class="omnipod-logo" alt="Omnipod" decoding="async">
+              </a>
+            </div>
+          <?php else: ?>
+            <a href="/" class="site-logo-link" rel="home" aria-current="page">
+              <img src="https://geffenmedical.co.il/wp-content/uploads/2025/12/new-main-logo.svg" class="site-logo" alt="GeffenMedikal" decoding="async">
+            </a>
+          <?php endif; ?>
         </div><!-- .site-branding -->     
       </div>
     <?php

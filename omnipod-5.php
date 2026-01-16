@@ -51,6 +51,10 @@ get_header();
           <div class="col-lg-6 col-sm-12">
             <h1 class="h1"><?= get_field('title') ?></h1>
             <p><?= get_field('subtitle') ?></p>
+            <div class="button-omnipod-block" style="justify-content: flex-start;">
+                  <a href="<?= get_field('block1_column_main_link') ?>" class="button-omnipod" role="button"
+                    target="_blank"><?= get_field('block1_column_main') ?></a>
+                </div>
           </div>
           <div class="col-lg-6 col-sm-12">
 
@@ -193,7 +197,7 @@ get_header();
           <div class="row">
 
           <div class="col-lg-6 col-sm-12 f-alit-cent js-content-centr flex-column">
-            <div class="podder-image-dash omnipod-5-image-dash" style="background-image: url(https://geffenmedical.co.il/wp-content/uploads/2025/07/pod-shape_man-in-office_330x422.png);"  ></div>
+            <div class="podder-image-dash omnipod-5-image-dash" style="background-image: url(https://geffenmedical.co.il/wp-content/uploads/2025/12/pod-shape_man-in-office_330x422.png);"  ></div>
             </div>
 
 

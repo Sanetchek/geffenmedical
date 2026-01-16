@@ -1140,21 +1140,114 @@ function geffen_update_max_quantity_fragments($fragments)
  * If user doesn't have user_crm_id, send to another email
  *
  * @param string $recipient Email recipient
- * @param WC_Order $order Order object
+ * @param WC_Order|int|null $order Order object or order ID
  * @return string Modified email recipient
  */
 function geffen_customize_admin_new_order_email_recipient($recipient, $order)
 {
+  // Log function call
+  log_data([
+    'filter' => 'woocommerce_email_recipient_admin_new_order',
+    'action' => 'function_called',
+    'original_recipient' => $recipient,
+    'order_type' => gettype($order),
+    'is_wc_order' => is_a($order, 'WC_Order')
+  ], 'email-filter');
+
+  // Check if WooCommerce is loaded
+  if (!function_exists('wc_get_order')) {
+    log_data([
+      'filter' => 'woocommerce_email_recipient_admin_new_order',
+      'action' => 'error',
+      'message' => 'WooCommerce functions not available'
+    ], 'email-filter');
+    return $recipient;
+  }
+
+  // Ensure $order is a WC_Order object
+  if (!is_a($order, 'WC_Order')) {
+    log_data([
+      'filter' => 'woocommerce_email_recipient_admin_new_order',
+      'action' => 'order_conversion',
+      'message' => 'Order is not WC_Order object, attempting conversion',
+      'order_type' => gettype($order)
+    ], 'email-filter');
+
+    if (is_numeric($order)) {
+      log_data([
+        'filter' => 'woocommerce_email_recipient_admin_new_order',
+        'action' => 'order_conversion',
+        'message' => 'Order is numeric ID',
+        'order_id' => $order
+      ], 'email-filter');
+      $order = wc_get_order($order);
+    } elseif (is_object($order) && isset($order->ID)) {
+      log_data([
+        'filter' => 'woocommerce_email_recipient_admin_new_order',
+        'action' => 'order_conversion',
+        'message' => 'Order is object with ID',
+        'order_id' => $order->ID
+      ], 'email-filter');
+      $order = wc_get_order($order->ID);
+    } else {
+      log_data([
+        'filter' => 'woocommerce_email_recipient_admin_new_order',
+        'action' => 'error',
+        'message' => 'Cannot convert order to WC_Order object',
+        'order_type' => gettype($order)
+      ], 'email-filter');
+      // If we can't get order, return default recipient
+      return $recipient;
+    }
+  }
+
+  // Double check order is valid
+  if (!$order || !is_a($order, 'WC_Order')) {
+    log_data([
+      'filter' => 'woocommerce_email_recipient_admin_new_order',
+      'action' => 'error',
+      'message' => 'Order is invalid after conversion'
+    ], 'email-filter');
+    return $recipient;
+  }
+
+  $order_id = $order->get_id();
+  log_data([
+    'filter' => 'woocommerce_email_recipient_admin_new_order',
+    'action' => 'order_processed',
+    'order_id' => $order_id
+  ], 'email-filter');
+
   // Get user ID from order
   $user_id = $order->get_customer_id();
+  log_data([
+    'filter' => 'woocommerce_email_recipient_admin_new_order',
+    'action' => 'user_check',
+    'order_id' => $order_id,
+    'user_id' => $user_id ? $user_id : null
+  ], 'email-filter');
 
   if (!$user_id) {
+    log_data([
+      'filter' => 'woocommerce_email_recipient_admin_new_order',
+      'action' => 'no_user_id',
+      'order_id' => $order_id,
+      'message' => 'No user ID found, returning default recipient',
+      'returned_recipient' => $recipient
+    ], 'email-filter');
     // If no user ID, return default recipient
     return $recipient;
   }
 
   // Get user_crm_id from user meta
   $user_crm_id = get_user_meta($user_id, 'user_crm_id', true);
+  log_data([
+    'filter' => 'woocommerce_email_recipient_admin_new_order',
+    'action' => 'crm_id_check',
+    'order_id' => $order_id,
+    'user_id' => $user_id,
+    'user_crm_id' => $user_crm_id ? $user_crm_id : null
+  ], 'email-filter');
 
   // Define email addresses
   $email_with_crm_id = 'webshops@geffenmedical.com';      // Email for users WITH user_crm_id
@@ -1162,14 +1255,35 @@ function geffen_customize_admin_new_order_email_recipient($recipient, $order)
 
   // Check if user has user_crm_id
   if (!empty($user_crm_id)) {
+    log_data([
+      'filter' => 'woocommerce_email_recipient_admin_new_order',
+      'action' => 'recipient_selected',
+      'order_id' => $order_id,
+      'user_id' => $user_id,
+      'user_crm_id' => $user_crm_id,
+      'has_crm_id' => true,
+      'selected_email' => $email_with_crm_id,
+      'original_recipient' => $recipient
+    ], 'email-filter');
     // User has user_crm_id - send to first email
     return $email_with_crm_id;
   } else {
+    log_data([
+      'filter' => 'woocommerce_email_recipient_admin_new_order',
+      'action' => 'recipient_selected',
+      'order_id' => $order_id,
+      'user_id' => $user_id,
+      'user_crm_id' => null,
+      'has_crm_id' => false,
+      'selected_email' => $email_without_crm_id,
+      'original_recipient' => $recipient
+    ], 'email-filter');
     // User doesn't have user_crm_id - send to second email
     return $email_without_crm_id;
   }
 }
-add_filter('woocommerce_email_recipient_admin_new_order', 'geffen_customize_admin_new_order_email_recipient', 10, 2);
+// Use priority 20 to ensure it runs after other filters, but before default
+add_filter('woocommerce_email_recipient_admin_new_order', 'geffen_customize_admin_new_order_email_recipient', 20, 2);
 
 /**
  * Change admin new order email subject if user doesn't have user_crm_id

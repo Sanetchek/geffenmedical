@@ -35,18 +35,9 @@
 
 		<?php if (!is_page_template('HCP.php') && !is_page_template('templates/multiaccount-order-email.php') && get_post_type() !== 'medical_profile' && get_post_type() !== 'customer' && get_post_type() !== 'managements') : ?>
 		<header id="masthead" class="site-header des-header">
-
-
-			<div class="col-2 col-md-3">
-				<?php get_template_part('template-parts/header/logo') ?>
-			</div>
-
-			<div lass="col-4 col-md-4 menu-main-geffen-row ds-header-menu2">
-			<?php get_template_part('template-parts/header/menu'); ?>
-		</div>
-
 			<div class="user-site-navigation col-5 col-md-2">
-				<?php if (!is_user_blocked($user_ip)): ?>
+				<?php $user_ip = $_SERVER['REMOTE_ADDR']; ?>
+				<?php if (!wp_is_mobile() && !is_user_blocked($user_ip)): ?>
 				<div class="user-site-login">
 					<?php get_template_part('template-parts/header/login') ?>
 				</div>
@@ -72,20 +63,11 @@
 				</div>
 			</div>
 
-			<?php get_template_part('template-parts/header/burger-menu') ?>
-			
-			<!-- Дублируем иконку поиска для правого блока на мобильных -->
-			<div class="user-site-search-mobile">
-				<?php get_template_part('template-parts/header/search') ?>
+			<div class="col-2 col-md-8">
+				<?php get_template_part('template-parts/header/logo') ?>
 			</div>
 
-			<!-- Крестик для закрытия меню в хедере -->
-			<div class="close-menu-header" onclick="toggleMenu()">
-				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-					<path d="M5.07369 19L18.9263 5.00001" stroke="#0A3B64" stroke-width="2" stroke-linecap="round"/>
-					<path d="M5.07373 5L18.9264 19" stroke="#0A3B64" stroke-width="2" stroke-linecap="round"/>
-				</svg>
-			</div>
+			<?php get_template_part('template-parts/header/burger-menu') ?>
 
 			<?php get_template_part('login-form') ?>
 
@@ -101,18 +83,18 @@
 
 		<?php if (get_post_type() === 'freestyle_libre') : ?>
 		<?php get_template_part('template-parts/header/libre-menu'); ?>
-		<?php elseif (get_post_type() === 'omnipod' || get_post_type() === 'omnipod5') : ?>
+		<?php elseif (get_post_type() === 'omnipod') : ?>
 		<?php get_template_part('template-parts/header/omnipod-menu'); ?>
 		<?php else : ?>
 		<?php if (!wp_is_mobile()) : ?>
-		<!--<div lass="col-12 col-md-12 menu-main-geffen-row ds-header-menu2">
+		<div lass="col-12 col-md-12 menu-main-geffen-row ds-header-menu2">
 			<?php get_template_part('template-parts/header/menu'); ?>
-		</div>-->
+		</div>
 		<?php endif; ?>
 		<div class="banner-slider-main-page" style="display: block!important;">
 			<div lass="col-12 col-md-12 menu-main-geffen-row ds-header-menu2">
 			</div>
-			<?php if ( is_front_page() || is_page_template('page-new-home.php') ) : ?>
+			<?php if ( is_front_page() ) : ?>
 			<div class="col-12 col-md-12 header-slider-banner-home-page"
 				style="display: flex!important;justify-content: center;">
 				<style>
@@ -153,7 +135,7 @@
 							<div class="video-background">
 								<!--<video autoplay muted loop playsinline>
 									<source
-										src="/wp-content/uploads/2024/11/097026b0-834c-49a9-bc49-af956236bb1b.mp4"
+										src="https://geffenmedical.co.il/wp-content/uploads/2024/11/097026b0-834c-49a9-bc49-af956236bb1b.mp4"
 										type="video/mp4">
 								</video>---->
 								<video autoplay muted loop playsinline style="max-height: 460px;width: 100vw;">
@@ -184,7 +166,7 @@
 							<div class="video-background">
 								<!--<video autoplay muted loop playsinline>
 									<source
-										src="/wp-content/uploads/2024/11/097026b0-834c-49a9-bc49-af956236bb1b.mp4"
+										src="https://geffenmedical.co.il/wp-content/uploads/2024/11/097026b0-834c-49a9-bc49-af956236bb1b.mp4"
 										type="video/mp4">
 								</video>---->
 								<video autoplay muted loop playsinline style="max-height: 460px;width: 100vw;">
@@ -194,9 +176,15 @@
 
 						</a>
 						<?php elseif (!empty($item['image_mobile'])) : ?>
-						<a href="<?= esc_url($item['banner-link']) ?>" tabindex="0">
+						<a href="<?= esc_url($item['banner-link']) ?>" tabindex="0" class="image_preview">
 							<?php show_image($item['image_mobile']); ?>
 						</a>
+						<style media="screen">
+						  .image_preview img {
+						    height: 500px !important;
+						  }
+						</style>
+
 						<?php endif; ?>
 					</div>
 					<?php endforeach; ?>

@@ -36044,7 +36044,7 @@ h2.connected-care-bg-title {
     top: 0;
     right: 0;
     width: 50%;
-    border-top: 4px solid #222731s;
+    border-top: 4px solid #222731;
 }
 
 .fl-libre-main-navigation ul ul a:hover {
@@ -36672,6 +36672,8 @@ h2.connected-care-bg-title {
     .product-info-sensor{
         background: #f7f7f9;
     padding: 40px 15px;
+    display: flex;
+    justify-content: center;
     }
 @media (max-width: 980px){
     #container-bcee7ede1e {
