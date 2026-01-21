@@ -33,7 +33,7 @@ get_header();
       </div>
     </div>
 
-    <div class="container reader realReader  layout-space-above">
+    <div class="container reader realReader">
       <div class="section g-24-40">
         <div class="container reader realReader">
           <div class="section g-24-40">

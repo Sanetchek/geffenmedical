@@ -1154,6 +1154,20 @@ function geffen_customize_admin_new_order_email_recipient($recipient, $order)
     'is_wc_order' => is_a($order, 'WC_Order')
   ], 'email-filter');
 
+  // Check if recipient is set via meta (from woocommerce_new_order hook)
+  if (is_a($order, 'WC_Order')) {
+    $meta_recipient = $order->get_meta('_geffen_email_recipient');
+    if (!empty($meta_recipient)) {
+      log_data([
+        'filter' => 'woocommerce_email_recipient_admin_new_order',
+        'action' => 'using_meta_recipient',
+        'order_id' => $order->get_id(),
+        'recipient' => $meta_recipient
+      ], 'email-filter');
+      return $meta_recipient;
+    }
+  }
+
   // Check if WooCommerce is loaded
   if (!function_exists('wc_get_order')) {
     log_data([
@@ -1296,6 +1310,14 @@ add_filter('woocommerce_email_recipient_admin_new_order', 'geffen_customize_admi
  */
 function geffen_customize_admin_new_order_email_subject($subject, $order)
 {
+  // Check if subject is set via meta (from woocommerce_new_order hook)
+  if (is_a($order, 'WC_Order')) {
+    $meta_subject = $order->get_meta('_geffen_email_subject');
+    if (!empty($meta_subject)) {
+      return $meta_subject;
+    }
+  }
+
   // Get user ID from order
   $user_id = $order->get_customer_id();
 
@@ -1318,3 +1340,135 @@ function geffen_customize_admin_new_order_email_subject($subject, $order)
   return $subject;
 }
 add_filter('woocommerce_email_subject_new_order', 'geffen_customize_admin_new_order_email_subject', 10, 2);
+
+/**
+ * Send admin new order email when order is created
+ * This hook fires for all orders regardless of status
+ *
+ * @param int $order_id Order ID
+ */
+function geffen_send_admin_new_order_email($order_id)
+{
+  // Check if WooCommerce is loaded
+  if (!function_exists('wc_get_order') || !function_exists('WC')) {
+    log_data([
+      'hook' => 'woocommerce_new_order',
+      'action' => 'error',
+      'message' => 'WooCommerce functions not available',
+      'order_id' => $order_id
+    ], 'email-filter');
+    return;
+  }
+
+  // Get order object
+  $order = wc_get_order($order_id);
+  if (!$order || !is_a($order, 'WC_Order')) {
+    log_data([
+      'hook' => 'woocommerce_new_order',
+      'action' => 'error',
+      'message' => 'Invalid order object',
+      'order_id' => $order_id
+    ], 'email-filter');
+    return;
+  }
+
+  // Log order creation
+  log_data([
+    'hook' => 'woocommerce_new_order',
+    'action' => 'order_created',
+    'order_id' => $order_id,
+    'order_status' => $order->get_status(),
+    'customer_id' => $order->get_customer_id()
+  ], 'email-filter');
+
+  // Get user ID from order
+  $user_id = $order->get_customer_id();
+  if (!$user_id) {
+    log_data([
+      'hook' => 'woocommerce_new_order',
+      'action' => 'no_user_id',
+      'order_id' => $order_id,
+      'message' => 'No user ID found, skipping email'
+    ], 'email-filter');
+    return;
+  }
+
+  // Get user_crm_id from user meta
+  $user_crm_id = get_user_meta($user_id, 'user_crm_id', true);
+
+  // Define email addresses
+  $email_with_crm_id = 'webshops@geffenmedical.com';      // Email for users WITH user_crm_id
+  $email_without_crm_id = 'tiful-gm@geffenmedical.com'; // Email for users WITHOUT user_crm_id
+
+  // Determine recipient based on user_crm_id
+  $recipient_email = !empty($user_crm_id) ? $email_with_crm_id : $email_without_crm_id;
+
+  log_data([
+    'hook' => 'woocommerce_new_order',
+    'action' => 'recipient_determined',
+    'order_id' => $order_id,
+    'user_id' => $user_id,
+    'user_crm_id' => $user_crm_id ? $user_crm_id : null,
+    'has_crm_id' => !empty($user_crm_id),
+    'recipient_email' => $recipient_email
+  ], 'email-filter');
+
+  // Store recipient in order meta temporarily for the filter to use
+  $order->update_meta_data('_geffen_email_recipient', $recipient_email);
+  if (empty($user_crm_id)) {
+    $order_number = $order->get_order_number();
+    $custom_subject = sprintf('אישור הזמנה - לקוח כפול %s#', $order_number);
+    $order->update_meta_data('_geffen_email_subject', $custom_subject);
+  }
+  $order->save_meta_data();
+
+  // Get email instance
+  $mailer = WC()->mailer();
+  $emails = $mailer->get_emails();
+
+  // Try different possible keys for the email
+  $email = null;
+  if (isset($emails['WC_Email_New_Order'])) {
+    $email = $emails['WC_Email_New_Order'];
+  } elseif (isset($emails['new_order'])) {
+    $email = $emails['new_order'];
+  } else {
+    // Try to find email by class name
+    foreach ($emails as $email_instance) {
+      if (is_a($email_instance, 'WC_Email_New_Order')) {
+        $email = $email_instance;
+        break;
+      }
+    }
+  }
+
+  if (!$email) {
+    log_data([
+      'hook' => 'woocommerce_new_order',
+      'action' => 'error',
+      'message' => 'WC_Email_New_Order email class not found',
+      'order_id' => $order_id,
+      'available_emails' => array_keys($emails)
+    ], 'email-filter');
+    return;
+  }
+
+  // Trigger the email - filters will handle recipient and subject
+  $email->trigger($order_id);
+
+  // Clean up meta
+  $order->delete_meta_data('_geffen_email_recipient');
+  if ($order->meta_exists('_geffen_email_subject')) {
+    $order->delete_meta_data('_geffen_email_subject');
+  }
+  $order->save_meta_data();
+
+  log_data([
+    'hook' => 'woocommerce_new_order',
+    'action' => 'email_sent',
+    'order_id' => $order_id,
+    'recipient_email' => $recipient_email,
+    'user_crm_id' => $user_crm_id ? $user_crm_id : null
+  ], 'email-filter');
+}
+add_action('woocommerce_new_order', 'geffen_send_admin_new_order_email', 10, 1);

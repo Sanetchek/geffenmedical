@@ -99,18 +99,6 @@ get_header();
       </div>
     </div>
 
-    <div class="omnipod5-violet-block  layout-space-above">
-      <div class="container reader realReader m-t120">
-        <div class="section g-24-40">
-          <p style="text-align: center;"><?= get_field('block2_title') ?></p>
-          <div class="violet-border">
-            <a style="background: #fff;border-color: #fff;"
-              href="<?= get_field('block2_button_link') ?>"><?= get_field('block2_button_text') ?></a>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <div class="bg-aqua-gradient layout-space-above">
       <div class="container reader realReader m-t120">
         <div class="believe-block">
@@ -145,7 +133,7 @@ get_header();
       </div>
     </div>
 
-    <div class="bg-gray-gradient m-66 layout-space-above">
+    <div class="bg-gray-gradient m-66">
       <div class="container reader realReader m-t120">
         <div class="section g-24-40">
           <h2 class="omnipod-h2" style="text-align: center;width: 50%;
@@ -193,117 +181,6 @@ get_header();
         </div>
       </div>
     </div>
-
-
-    <div class="bg-gray-gradient m-66 ">
-      <div class="container reader realReader m-t120">
-        <div class="believe-block">
-          <div class="row row-1120">
-            <h2 class="omnipod-h2 mobile-what-is-omnipod-h2" style="text-align: center;">
-              <?= get_field('block5_title') ?></h2>
-            <div class="col-lg-6 col-sm-12">
-              <div class="img-believe-block omnipod5-img-believe-block">
-                <?php 
-                  $image = get_field('block5_image');
-                  $size = 'full';
-                  if( $image ) {
-                    echo wp_get_attachment_image( $image, $size );
-                  }
-                ?>
-              </div>
-            </div>
-            <div class="col-lg-6 col-sm-12 f-alit-cent">
-              <div class="block-layout-builder omnipod5-block-layout-builder">
-                <div class="text-body">
-                  <p><?= get_field('block5_text') ?></p>
-                </div>
-
-                <div class="button-omnipod-block" style="justify-content: flex-start;">
-                  <a href="<?= get_field('block5_button_link') ?>" class="button-omnipod" role="button"
-                    target="_blank"><?= get_field('block5_button_text') ?></a>
-                </div>
-
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="bg-red-gradient-faq layout-space-above">
-      <div class="conteiner-1200 reader realReader">
-        <div class="section g-24-40">
-          <div class="row">
-            <div class="mt-50">
-            <h2 class="omnipod-h2 mobile-what-is-omnipod-h2" style="text-align: right!important;">
-            <?= get_field('block6_title') ?>
-          </h2>
-            </div>
-
-            <div class="col-lg-4 col-sm-12 profile-nav">
-              <div class="omnipod5-img-say-about podder-image-dash omnipod-dashnew-img"
-                style="background-image: url(<?php 
-                  $image = get_field('block6_image3');
-                  if( $image ) {
-                    $image_url = is_array($image) ? $image['url'] : wp_get_attachment_image_url($image, 'full');
-                    echo esc_url($image_url);
-                  }
-                ?>); background-size: cover !important;">
-              </div>
-
-              <blockquote class="pull-quote">
-              <?= get_field('block6_review3') ?>
-              </blockquote>
-              <p class="omnipod5-img-say-about-review-autor"> <?= get_field('block6_review3_autor') ?></p>
-              <p class="omnipod5-img-say-about-review-attribution"> <?= get_field('block6_review3_attribution') ?></p>
-
-            </div>
-
-            <div class="col-lg-4 col-sm-12 profile-nav">
-              <div class="omnipod5-img-say-about podder-image-dash omnipod-dashnew-img"
-                style="background-image: url(<?php 
-                  $image = get_field('block6_image2');
-                  if( $image ) {
-                    $image_url = is_array($image) ? $image['url'] : wp_get_attachment_image_url($image, 'full');
-                    echo esc_url($image_url);
-                  }
-                ?>); background-size: cover !important;">
-              </div>
-
-
-              <blockquote class="pull-quote">
-                <?= get_field('block6_review2') ?>
-              </blockquote>
-              <p class="omnipod5-img-say-about-review-autor"> <?= get_field('block6_review2_autor') ?></p>
-              <p class="omnipod5-img-say-about-review-attribution"> <?= get_field('block6_review2_attribution') ?></p>
-
-            </div>
-            <div class="col-lg-4 col-sm-12  profile-nav">
-              <div class="omnipod5-img-say-about podder-image-dash omnipod-dashnew-img"
-                  style="background-image: url(<?php 
-                    $image = get_field('block6_image1');
-                    if( $image ) {
-                      $image_url = is_array($image) ? $image['url'] : wp_get_attachment_image_url($image, 'full');
-                      echo esc_url($image_url);
-                    }
-                  ?>); background-size: cover !important;">
-                </div>
-                <blockquote class="pull-quote">
-                    <?= get_field('block6_review1') ?> 
-                </blockquote>
-                <p class="omnipod5-img-say-about-review-autor"> <?= get_field('block6_review1_autor') ?></p>
-                <p class="omnipod5-img-say-about-review-attribution"> <?= get_field('block6_review1_attribution') ?></p>
-                </blockquote>
-              </div>
-          </div>
-          <div class="violet-border mt-50 white-border" style="display: flex;justify-content: center;">
-                <a href="<?= get_field('block6_button_link') ?>" role="button" target="_blank"><?= get_field('block6_button_text') ?></a>
-              </div>
-        </div>
-      </div>
-    </div>
-
-
 
     <div class="block-1-container layout-space-above">
       <div class="conteiner-1200 reader realReader m-t120">
@@ -400,10 +277,6 @@ get_header();
               <div class="violet-border" style="display: flex;justify-content: center;margin-bottom:18px!important;">
                   <a href="<?= get_field('block8_button_link3-1') ?>" role="button"
                     target="_blank"><?= get_field('block8_button_text3-1') ?></a>
-              </div>
-              <div class="violet-border" style="display: flex;justify-content: center;margin-bottom:18px!important;">
-                  <a href="<?= get_field('block8_button_link3-2') ?>" role="button"
-                    target="_blank"><?= get_field('block8_button_text3-2') ?></a>
               </div>
 
             </div>

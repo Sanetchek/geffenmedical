@@ -33,7 +33,7 @@ get_header();
       </div>
     </div>
 
-    <div class="container reader realReader  layout-space-above">
+    <div class="container reader realReader">
       <div class="section g-24-40">
         <p><?= get_field('block1_text') ?></p>
         <div class="container reader realReader">
@@ -60,21 +60,6 @@ get_header();
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="section g-24-40 violet-block violet-block-availability-access">
-      <div class="row fl-center">
-        <div class="block-violet-content pd-60">
-          <h3 class="h3"><?= get_field('block2_title') ?></h3>
-          <p  style="text-align: right !important;margin-bottom:45px!important;"><?= get_field('block2_text') ?></p>
-          <div class="violet-border" style="display: flex;justify-content: flex-start;margin-bottom:30px!important;">
-            <a class="bg-fff" href="<?= get_field('block2_button_link1') ?>" role="button" target="_blank"><?= get_field('block2_button_text1') ?></a>
-          </div>
-          <div class="violet-border" style="display: flex;justify-content: flex-start;margin-bottom:30px!important;">
-            <a class="bg-fff" href="<?= get_field('block2_button_link2') ?>" role="button" target="_blank"><?= get_field('block2_button_text2') ?></a>
           </div>
         </div>
       </div>

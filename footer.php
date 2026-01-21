@@ -80,6 +80,14 @@
 <?php get_template_part('template-parts/adv', 'popup') ?>
 <?php wp_footer(); ?>
 
+<script>
+document.addEventListener('click', function(e) {
+    if(e.target && e.target.id == 'close-type2-btn'){
+        document.getElementById('type2-alert').style.display = 'none';
+    }
+});
+</script>
+
 </body>
 
 </html>

@@ -446,6 +446,30 @@ function geffen_create_order() {
     wp_die();
   }
 
+  // Validate cart is not empty before creating order
+  if (!WC()->cart || WC()->cart->is_empty()) {
+    log_data([
+      'function' => 'geffen_create_order',
+      'action' => 'cart_validation_failed',
+      'user_id' => $user_id,
+      'message' => 'Cart is empty or does not exist',
+      'cart_exists' => WC()->cart ? true : false,
+      'cart_is_empty' => WC()->cart ? WC()->cart->is_empty() : 'N/A'
+    ], 'order-creation');
+
+    wp_send_json_error( ['message' => __('הסל שלך ריק. אנא הוסיפו מוצרים לסל לפני יצירת הזמנה', 'geffen')] );
+    wp_die();
+  }
+
+  $cart_items_count = WC()->cart->get_cart_contents_count();
+  log_data([
+    'function' => 'geffen_create_order',
+    'action' => 'cart_validation_passed',
+    'user_id' => $user_id,
+    'cart_items_count' => $cart_items_count,
+    'cart_total' => WC()->cart->get_total('')
+  ], 'order-creation');
+
   if ($data['shipping_method'][0] == 'flat_rate:4') {
     $is_empty = check_mandatory_fields($data);
 
@@ -489,8 +513,22 @@ function geffen_create_order() {
   $shipping->set_total( $shipping_method_price ); // optional
 
   // Create New Order
+  log_data([
+    'function' => 'geffen_create_order',
+    'action' => 'creating_order',
+    'user_id' => $user_id,
+    'shipping_method' => $shipping_method_id
+  ], 'order-creation');
+
   $order = wc_create_order();
   $order_id = $order->ID;
+
+  log_data([
+    'function' => 'geffen_create_order',
+    'action' => 'order_created',
+    'order_id' => $order_id,
+    'user_id' => $user_id
+  ], 'order-creation');
 
   // Update Order Status
   $order->update_status('pending'); // or 'processing', 'on-hold', etc.
@@ -537,20 +575,174 @@ function geffen_create_order() {
   $order->set_customer_id( $user_id );
 
   // Add products to the order
-  foreach (WC()->cart->get_cart() as $cart_item_key => $cart_item) {
+  $products_added = 0;
+  $products_failed = 0;
+  $cart_items = WC()->cart->get_cart();
+
+  log_data([
+    'function' => 'geffen_create_order',
+    'action' => 'starting_product_addition',
+    'order_id' => $order_id,
+    'user_id' => $user_id,
+    'cart_items_count' => count($cart_items)
+  ], 'order-creation');
+
+  foreach ($cart_items as $cart_item_key => $cart_item) {
     $product_id = $cart_item['variation_id'] ? $cart_item['variation_id'] : $cart_item['product_id'];
+    $variation_id = $cart_item['variation_id'] ?? 0;
+    $quantity = $cart_item['quantity'] ?? 0;
+
+    log_data([
+      'function' => 'geffen_create_order',
+      'action' => 'processing_product',
+      'order_id' => $order_id,
+      'cart_item_key' => $cart_item_key,
+      'product_id' => $product_id,
+      'variation_id' => $variation_id,
+      'quantity' => $quantity
+    ], 'order-creation');
+
+    // Get product object
     $product = wc_get_product($product_id);
 
-    $order->add_product($product, $cart_item['quantity'], array(
-      'subtotal' => $cart_item['line_subtotal'], // Set the discounted price as the subtotal
-      'total' => $cart_item['line_total'] // Set the discounted price as the total
-    ));
+    // Validate product exists and is valid
+    if (!$product || !is_a($product, 'WC_Product')) {
+      log_data([
+        'function' => 'geffen_create_order',
+        'action' => 'product_invalid',
+        'order_id' => $order_id,
+        'product_id' => $product_id,
+        'variation_id' => $variation_id,
+        'error' => 'Product not found or invalid'
+      ], 'order-creation');
+      $products_failed++;
+      continue;
+    }
+
+    // Validate quantity
+    if (empty($quantity) || $quantity <= 0) {
+      log_data([
+        'function' => 'geffen_create_order',
+        'action' => 'product_quantity_invalid',
+        'order_id' => $order_id,
+        'product_id' => $product_id,
+        'variation_id' => $variation_id,
+        'quantity' => $quantity,
+        'error' => 'Invalid quantity'
+      ], 'order-creation');
+      $products_failed++;
+      continue;
+    }
+
+    // Add product to order
+    try {
+      $item_id = $order->add_product($product, $quantity, array(
+        'subtotal' => $cart_item['line_subtotal'] ?? 0,
+        'total' => $cart_item['line_total'] ?? 0
+      ));
+
+      if ($item_id) {
+        $products_added++;
+        log_data([
+          'function' => 'geffen_create_order',
+          'action' => 'product_added_successfully',
+          'order_id' => $order_id,
+          'item_id' => $item_id,
+          'product_id' => $product_id,
+          'variation_id' => $variation_id,
+          'quantity' => $quantity,
+          'subtotal' => $cart_item['line_subtotal'] ?? 0,
+          'total' => $cart_item['line_total'] ?? 0
+        ], 'order-creation');
+      } else {
+        $products_failed++;
+        log_data([
+          'function' => 'geffen_create_order',
+          'action' => 'product_add_failed',
+          'order_id' => $order_id,
+          'product_id' => $product_id,
+          'variation_id' => $variation_id,
+          'quantity' => $quantity,
+          'error' => 'add_product returned false or 0'
+        ], 'order-creation');
+      }
+    } catch (Exception $e) {
+      $products_failed++;
+      log_data([
+        'function' => 'geffen_create_order',
+        'action' => 'product_add_exception',
+        'order_id' => $order_id,
+        'product_id' => $product_id,
+        'variation_id' => $variation_id,
+        'quantity' => $quantity,
+        'error' => $e->getMessage()
+      ], 'order-creation');
+    }
   }
+
+  log_data([
+    'function' => 'geffen_create_order',
+    'action' => 'product_addition_completed',
+    'order_id' => $order_id,
+    'products_added' => $products_added,
+    'products_failed' => $products_failed,
+    'total_cart_items' => count($cart_items)
+  ], 'order-creation');
+
+  // Final validation - check if order has at least one product
+  $order_items = $order->get_items();
+  $product_items_count = 0;
+
+  foreach ($order_items as $item) {
+    if (is_a($item, 'WC_Order_Item_Product')) {
+      $product_items_count++;
+    }
+  }
+
+  if ($product_items_count === 0) {
+    log_data([
+      'function' => 'geffen_create_order',
+      'action' => 'order_has_no_products',
+      'order_id' => $order_id,
+      'user_id' => $user_id,
+      'products_added' => $products_added,
+      'products_failed' => $products_failed,
+      'order_items_count' => count($order_items),
+      'product_items_count' => $product_items_count,
+      'message' => 'Order created but has no products, deleting order'
+    ], 'order-creation');
+
+    // Delete the empty order
+    wp_delete_post($order_id, true);
+
+    wp_send_json_error( [
+      'message' => __('לא ניתן ליצור הזמנה ללא מוצרים. אנא הוסיפו מוצרים לסל ונסו שוב', 'geffen'),
+      'error_code' => 'empty_order'
+    ] );
+    wp_die();
+  }
+
+  log_data([
+    'function' => 'geffen_create_order',
+    'action' => 'order_validation_passed',
+    'order_id' => $order_id,
+    'product_items_count' => $product_items_count,
+    'total_order_items' => count($order_items)
+  ], 'order-creation');
 
   // calculate and save
   $order->calculate_totals();
 
   $is_saved = $order->save();
+
+  log_data([
+    'function' => 'geffen_create_order',
+    'action' => 'order_saved',
+    'order_id' => $order_id,
+    'is_saved' => $is_saved,
+    'order_total' => $order->get_total(),
+    'order_status' => $order->get_status()
+  ], 'order-creation');
 
   // Get Redirect page links
   $payment_page = $order->get_checkout_payment_url();
